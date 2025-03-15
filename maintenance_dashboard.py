@@ -18,8 +18,8 @@ import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import kagglehub
-from kagglehub import KaggleDatasetAdapter
+# import kagglehub
+# from kagglehub import KaggleDatasetAdapter
 
 # Makine öğrenmesi kütüphaneleri
 from sklearn.model_selection import train_test_split
@@ -35,60 +35,202 @@ st.set_page_config(
     page_title="Prediktif Bakım Analiz Panosu",
     page_icon="🔧",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
 # Stil tanımlamaları
 st.markdown("""
 <style>
+    /* Ana başlıklar */
     .main-header {
-        font-size: 2.5rem;
-        color: #3498db;
+        font-size: 2.8rem;
+        color: #ffffff;
         text-align: center;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        font-weight: 800;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        padding: 15px;
+        border-radius: 10px;
+        border-bottom: 3px solid #4e73df;
     }
+    
+    /* Alt başlıklar */
     .sub-header {
-        font-size: 1.5rem;
-        color: #2980b9;
-        margin-bottom: 1rem;
+        font-size: 1.8rem;
+        color: #ffffff;
+        margin-bottom: 1.2rem;
+        font-weight: 700;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        padding: 10px;
+        border-radius: 8px;
+        border-left: 5px solid #4e73df;
     }
+    
+    /* Bilgi kutusu */
     .info-box {
         padding: 1rem;
         border-radius: 0.5rem;
-        background-color: #f8f9fa;
+        background-color: rgba(25, 39, 52, 0.8);
         border-left: 0.5rem solid #3498db;
         margin-bottom: 1rem;
+        color: #ffffff;
+        font-weight: 500;
     }
+    
+    /* Metrik kartları */
     .stMetric {
-        background-color: #f1f8fe;
+        background-color: rgba(25, 39, 52, 0.8);
         padding: 10px;
         border-radius: 5px;
-        border: 1px solid #cfe5fd;
+        border: 1px solid rgba(78, 115, 223, 0.5);
+        color: #ffffff;
     }
+    
+    /* Metrik kartlarındaki label */
+    div[data-testid="stMetricLabel"] {
+        color: #ffffff !important;
+        font-weight: 600;
+    }
+    
+    /* Metrik kartlarındaki değer */
+    div[data-testid="stMetricValue"] {
+        color: #ffffff !important;
+        font-size: 1.5rem !important;
+    }
+    
+    /* Alt sayfa başlıkları */
+    .tab-subheader {
+        font-size: 1.4rem;
+        color: #ffffff;
+        margin-top: 1.2rem;
+        margin-bottom: 1.2rem;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        padding: 8px;
+        border-radius: 6px;
+        border-left: 4px solid #4e73df;
+    }
+    
+    /* Sekme stilleri */
+    button[data-baseweb="tab"] {
+        color: #ffffff !important;
+        font-weight: 600;
+        background-color: rgba(25, 39, 52, 0.6);
+        border-radius: 5px 5px 0 0;
+        padding: 5px 15px !important;
+    }
+    
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #ffffff !important;
+        background-color: rgba(78, 115, 223, 0.5);
+        border-bottom: 3px solid #4e73df;
+    }
+    
+    /* Grafik kartları */
+    .stPlotlyChart {
+        background-color: rgba(25, 39, 52, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        margin-bottom: 20px !important;
+        border: 1px solid rgba(78, 115, 223, 0.3);
+    }
+    
+    /* Tablo stilleri */
+    .dataframe-container {
+        background-color: rgba(25, 39, 52, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        border: 1px solid rgba(78, 115, 223, 0.3);
+    }
+    
+    .dataframe {
+        color: #ffffff !important;
+    }
+    
+    div[data-testid="stTable"] {
+        color: #ffffff !important;
+    }
+    
+    /* Yan panel başlıkları */
+    div[data-testid="stSidebar"] h1, div[data-testid="stSidebar"] h2, div[data-testid="stSidebar"] h3 {
+        color: #ffffff !important;
+        font-weight: 700;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+    
+    /* Yan panel metin elemanları */
+    div[data-testid="stSidebar"] div[data-testid="stText"] {
+        color: #ffffff !important;
+    }
+    
+    /* Kontrol paneli stileri */
+    .sidebar .sidebar-content {
+        background-color: rgba(25, 39, 52, 0.9);
+    }
+    
+    /* Metin renkleri */
+    p, label, li {
+        color: #ffffff !important;
+    }
+    
+    /* Footer */
     .footer {
         text-align: center;
         margin-top: 2rem;
         padding: 1rem;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid rgba(78, 115, 223, 0.3);
         font-size: 0.8rem;
+        color: #ffffff;
     }
-    .tab-subheader {
-        font-size: 1.2rem;
-        color: #34495e;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
+    
+    /* Streamlit öğeleri düzenlemeleri */
+    div[data-testid="stVerticalBlock"] {
+        background-color: transparent !important;
+    }
+    
+    div[data-testid="stHorizontalBlock"] {
+        background-color: transparent !important;
+    }
+    
+    /* Tüm renk düzenlemeleri */
+    .main .block-container {
+        background-color: transparent !important;
+    }
+    
+    /* Tablo arka plan renkleri */
+    div[data-testid="stTable"] th {
+        background-color: rgba(25, 39, 52, 0.9) !important;
+        color: white !important;
+    }
+    
+    div[data-testid="stTable"] td {
+        background-color: rgba(25, 39, 52, 0.7) !important;
+        color: white !important;
+    }
+    
+    /* İçerik kutuları */
+    .element-container {
+        background-color: transparent !important;
+    }
+    
+    /* Streamlit formları */
+    .stForm {
+        background-color: rgba(25, 39, 52, 0.7) !important;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(78, 115, 223, 0.3);
     }
 </style>
 """, unsafe_allow_html=True)
 
+@st.cache_data
 def load_data():
-    """Kaggle'dan bakım veri setini yükler"""
+    """Bakım veri setini yerel dosyadan yükler ve cache'ler"""
     try:
-        df = kagglehub.load_dataset(
-            KaggleDatasetAdapter.PANDAS,
-            "shivamb/machine-predictive-maintenance-classification",
-            "",
-        )
+        file_path = "data/predictive_maintenance.csv"
+        df = pd.read_csv(file_path)
         return df
     except Exception as e:
         st.error(f"Veri yüklenirken hata: {e}")
@@ -98,8 +240,8 @@ def load_data():
 def prepare_data(df):
     """Veriyi işler ve önişleme yapar"""
     # Hedef değişkeni ve özellikleri ayır
-    X = df.drop(['UDI', 'Product ID', 'Machine failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF'], axis=1)
-    y = df['Machine failure']
+    X = df.drop(['UDI', 'Product ID', 'Target', 'Failure Type'], axis=1)
+    y = df['Target']
     
     # Kategorik ve sayısal değişkenleri ayır
     categorical_features = ['Type']
@@ -118,7 +260,7 @@ def prepare_data(df):
     return X, y, X_train, X_test, y_train, y_test, preprocessor, numerical_features, categorical_features
 
 @st.cache_resource
-def train_model(X_train, y_train, preprocessor, model_name="Random Forest"):
+def train_model(X_train, y_train, _preprocessor, model_name="Random Forest"):
     """Seçilen modeli eğit"""
     # Pipeline oluştur
     if model_name == "Random Forest":
@@ -130,7 +272,7 @@ def train_model(X_train, y_train, preprocessor, model_name="Random Forest"):
     
     # Pipeline'ı oluştur
     pipeline = Pipeline([
-        ('preprocessor', preprocessor),
+        ('preprocessor', _preprocessor),
         ('classifier', model)
     ])
     
@@ -164,7 +306,7 @@ def evaluate_model(pipeline, X_test, y_test):
 
 def plot_failure_distribution(df):
     """Arıza dağılımı pasta grafiği"""
-    failure_counts = df['Machine failure'].value_counts().reset_index()
+    failure_counts = df['Target'].value_counts().reset_index()
     failure_counts.columns = ['Durum', 'Sayı']
     failure_counts['Durum'] = failure_counts['Durum'].map({0: 'Normal', 1: 'Arıza'})
     
@@ -185,37 +327,46 @@ def plot_failure_distribution(df):
 
 def plot_failure_types(df):
     """Arıza türleri dağılımı"""
-    failure_types = df[['TWF', 'HDF', 'PWF', 'OSF', 'RNF']].sum().reset_index()
+    # Arıza türleri dağılımı
+    failure_types = df[df['Target'] == 1]['Failure Type'].value_counts().reset_index()
     failure_types.columns = ['Arıza Türü', 'Sayı']
     
-    # Arıza türlerinin tam adları
-    failure_names = {
-        'TWF': 'Takım Aşınma Arızası',
-        'HDF': 'Isı Dağılım Arızası',
-        'PWF': 'Güç Arızası',
-        'OSF': 'Aşırı Zorlanma Arızası',
-        'RNF': 'Rastgele Arıza'
-    }
+    # Renk skalasını tanımlayalım
+    colors = px.colors.qualitative.Plotly
     
-    failure_types['Arıza Adı'] = failure_types['Arıza Türü'].map(failure_names)
-    
+    # Bar grafiği
     fig = px.bar(
         failure_types, 
         x='Arıza Türü', 
         y='Sayı',
-        text='Sayı',
-        hover_data=['Arıza Adı'],
         color='Arıza Türü',
-        title='Arıza Türleri Dağılımı'
+        text='Sayı',
+        title='Arıza Türleri Dağılımı',
+        color_discrete_sequence=colors
     )
     
-    fig.update_traces(texttemplate='%{text}', textposition='outside')
+    fig.update_traces(
+        textposition='outside', 
+        textfont=dict(size=14),
+        marker_line_width=2
+    )
+    
+    fig.update_layout(
+        title_font_size=20,
+        xaxis_title='Arıza Türü',
+        yaxis_title='Sayı',
+        xaxis_title_font_size=16,
+        yaxis_title_font_size=16,
+        height=600,
+        width=800,
+        showlegend=False
+    )
     
     return fig
 
 def plot_failure_by_type(df):
     """Ürün tiplerine göre arıza oranları"""
-    type_failure = df.groupby('Type')['Machine failure'].mean().reset_index()
+    type_failure = df.groupby('Type')['Target'].mean().reset_index()
     type_failure.columns = ['Ürün Tipi', 'Arıza Oranı']
     type_failure['Arıza Oranı'] = type_failure['Arıza Oranı'] * 100
     
@@ -246,7 +397,7 @@ def plot_feature_correlation(df):
     """Özellikler arası korelasyon matrisi"""
     numerical_cols = ['Air temperature [K]', 'Process temperature [K]', 
                      'Rotational speed [rpm]', 'Torque [Nm]', 'Tool wear [min]',
-                     'Machine failure']
+                     'Target']
     
     corr = df[numerical_cols].corr().round(2)
     
@@ -323,7 +474,7 @@ def plot_scatter_analysis(df):
         df,
         x='Air temperature [K]',
         y='Torque [Nm]',
-        color='Machine failure',
+        color='Target',
         color_discrete_map={0: '#2ECC71', 1: '#E74C3C'},
         size='Tool wear [min]',
         size_max=15,
@@ -423,37 +574,59 @@ def main():
         with tab1:  # Veri Analizi Sekmesi
             st.markdown('<h2 class="sub-header">Veri Analizi</h2>', unsafe_allow_html=True)
             
-            # Temel metrikler
-            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-            with metric_col1:
-                st.metric("Toplam Kayıt", len(filtered_df))
-            with metric_col2:
-                st.metric("Arıza Oranı", f"%{filtered_df['Machine failure'].mean()*100:.2f}")
-            with metric_col3:
-                failure_types = filtered_df[['TWF', 'HDF', 'PWF', 'OSF', 'RNF']].sum()
-                most_common_failure = failure_types.idxmax() if failure_types.sum() > 0 else "Yok"
-                st.metric("En Yaygın Arıza", most_common_failure)
-            with metric_col4:
-                st.metric("Ortalama Alet Aşınması", f"{filtered_df['Tool wear [min]'].mean():.1f} dk")
+            # Temel metrikler - Metrik kartları
+            with st.container():
+                st.markdown('<div style="margin-bottom: 15px;"></div>', unsafe_allow_html=True)
+                metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+                with metric_col1:
+                    st.metric("Toplam Kayıt", len(filtered_df))
+                with metric_col2:
+                    st.metric("Arıza Oranı", f"%{filtered_df['Target'].mean()*100:.2f}")
+                with metric_col3:
+                    if filtered_df['Target'].sum() > 0:
+                        most_common_failure = filtered_df[filtered_df['Target'] == 1]['Failure Type'].value_counts().idxmax()
+                    else:
+                        most_common_failure = "Yok"
+                    st.metric("En Yaygın Arıza", most_common_failure)
+                with metric_col4:
+                    st.metric("Ortalama Alet Aşınması", f"{filtered_df['Tool wear [min]'].mean():.1f} dk")
             
-            # Grafikler
-            col1, col2 = st.columns(2)
+            # Grafikler için container
+            with st.container():
+                st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
+                    st.plotly_chart(plot_failure_distribution(filtered_df), use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
+                    st.plotly_chart(plot_failure_by_type(filtered_df), use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                with col2:
+                    st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
+                    st.plotly_chart(plot_failure_types(filtered_df), use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
+                    st.plotly_chart(plot_feature_correlation(filtered_df), use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
             
-            with col1:
-                st.plotly_chart(plot_failure_distribution(filtered_df), use_container_width=True)
-                st.plotly_chart(plot_failure_by_type(filtered_df), use_container_width=True)
+            # Scatter plot analizi için container
+            with st.container():
+                st.markdown('<h3 class="tab-subheader">Sensör Verileri Analizi</h3>', unsafe_allow_html=True)
+                st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
+                st.plotly_chart(plot_scatter_analysis(filtered_df), use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
             
-            with col2:
-                st.plotly_chart(plot_failure_types(filtered_df), use_container_width=True)
-                st.plotly_chart(plot_feature_correlation(filtered_df), use_container_width=True)
-            
-            # Scatter plot analizi
-            st.markdown('<h3 class="tab-subheader">Sensör Verileri Analizi</h3>', unsafe_allow_html=True)
-            st.plotly_chart(plot_scatter_analysis(filtered_df), use_container_width=True)
-            
-            # Ham veri gösterimi
-            st.markdown('<h3 class="tab-subheader">Ham Veri</h3>', unsafe_allow_html=True)
-            st.dataframe(filtered_df.head(50), use_container_width=True)
+            # Ham veri gösterimi için container
+            with st.container():
+                st.markdown('<h3 class="tab-subheader">Ham Veri</h3>', unsafe_allow_html=True)
+                st.markdown('<div class="dataframe-container">', unsafe_allow_html=True)
+                st.dataframe(filtered_df.head(50), use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
         
         with tab2:  # Model Sonuçları Sekmesi
             st.markdown('<h2 class="sub-header">Model Sonuçları</h2>', unsafe_allow_html=True)
@@ -485,9 +658,13 @@ def main():
                 
                 col1, col2 = st.columns(2)
                 with col1:
+                    st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
                     st.plotly_chart(plot_confusion_matrix(cm, model_name), use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
                 with col2:
+                    st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
                     st.plotly_chart(plot_roc_curve(fpr, tpr, roc_auc, model_name), use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Özellik önemleri
                 st.markdown('<h3 class="tab-subheader">Özellik Önemleri</h3>', unsafe_allow_html=True)
@@ -504,7 +681,9 @@ def main():
                 
                 feature_imp_fig = plot_feature_importance(pipeline, feature_names, model_name)
                 if feature_imp_fig:
+                    st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
                     st.plotly_chart(feature_imp_fig, use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
                 else:
                     st.warning("Seçilen model özellik önem derecelerini desteklemiyor.")
             else:
@@ -596,25 +775,30 @@ def main():
                     col1, col2 = st.columns(2)
                     
                     with col1:
+                        st.markdown('<div style="background-color: rgba(25, 39, 52, 0.8); padding: 20px; border-radius: 10px; text-align: center;">', unsafe_allow_html=True)
                         if pred_class == 1:
                             st.error("⚠️ ARIZA RİSKİ TESPİT EDİLDİ!")
-                            st.markdown(f"<h1 style='color: #E74C3C; text-align: center;'>%{pred_proba*100:.1f}</h1>", unsafe_allow_html=True)
-                            st.markdown("<p style='text-align: center;'>Arıza Olasılığı</p>", unsafe_allow_html=True)
+                            st.markdown(f"<h1 style='color: #E74C3C; text-align: center; font-size: 3rem;'>%{pred_proba*100:.1f}</h1>", unsafe_allow_html=True)
+                            st.markdown("<p style='text-align: center; font-weight: 600; font-size: 1.2rem; color: #ffffff;'>Arıza Olasılığı</p>", unsafe_allow_html=True)
                         else:
                             st.success("✅ NORMAL ÇALIŞMA")
-                            st.markdown(f"<h1 style='color: #2ECC71; text-align: center;'>%{(1-pred_proba)*100:.1f}</h1>", unsafe_allow_html=True)
-                            st.markdown("<p style='text-align: center;'>Normal Çalışma Olasılığı</p>", unsafe_allow_html=True)
+                            st.markdown(f"<h1 style='color: #2ECC71; text-align: center; font-size: 3rem;'>%{(1-pred_proba)*100:.1f}</h1>", unsafe_allow_html=True)
+                            st.markdown("<p style='text-align: center; font-weight: 600; font-size: 1.2rem; color: #ffffff;'>Normal Çalışma Olasılığı</p>", unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
                     
                     with col2:
                         # Gauge chart ile olasılık gösterimi
+                        st.markdown('<div class="stPlotlyChart">', unsafe_allow_html=True)
                         fig = go.Figure(go.Indicator(
                             mode = "gauge+number",
                             value = pred_proba * 100,
                             domain = {'x': [0, 1], 'y': [0, 1]},
-                            title = {'text': "Arıza Riski (%)"},
+                            title = {'text': "Arıza Riski (%)", 'font': {'size': 24, 'color': '#ffffff'}},
                             gauge = {
-                                'axis': {'range': [0, 100]},
-                                'bar': {'color': "darkblue"},
+                                'axis': {'range': [0, 100], 'tickfont': {'size': 14, 'color': '#ffffff'}},
+                                'bar': {'color': "#4e73df"},
+                                'bgcolor': "rgba(25, 39, 52, 0.5)",
+                                'borderwidth': 0,
                                 'steps': [
                                     {'range': [0, 30], 'color': "green"},
                                     {'range': [30, 70], 'color': "yellow"},
@@ -628,11 +812,21 @@ def main():
                             }
                         ))
                         
+                        fig.update_layout(
+                            height=350,
+                            margin=dict(l=20, r=20, t=50, b=20),
+                            font=dict(family="Arial", size=16, color="#ffffff"),
+                            paper_bgcolor="rgba(0,0,0,0)",  # Şeffaf arka plan
+                            plot_bgcolor="rgba(0,0,0,0)"    # Şeffaf arka plan
+                        )
+                        
                         st.plotly_chart(fig, use_container_width=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
                     
                     # Önerileri göster
                     st.markdown('<h3 class="tab-subheader">Bakım Önerileri</h3>', unsafe_allow_html=True)
-                    
+                    st.markdown('<div style="background-color: rgba(25, 39, 52, 0.8); padding: 20px; border-radius: 10px;">', unsafe_allow_html=True)
+
                     if pred_class == 1:
                         if tool_wear > 150:
                             st.warning("👉 Alet aşınması yüksek (>150 dk). Aletin değiştirilmesi önerilir.")
@@ -646,7 +840,9 @@ def main():
                         if machine_type == 'H':
                             st.warning("👉 H tipi makineler daha yüksek arıza riski taşır. Daha sık kontrol önerilir.")
                         
-                        st.error("⚠️ Acil bakım planlanması önerilir!")
+                        st.markdown('<div style="background-color: rgba(231, 76, 60, 0.3); color: #ffffff; padding: 15px; border-radius: 5px; margin-top: 15px; text-align: center; font-weight: bold; border-left: 4px solid #E74C3C;">' +
+                                    '⚠️ Acil bakım planlanması önerilir!' +
+                                    '</div>', unsafe_allow_html=True)
                     else:
                         suggestions = []
                         
@@ -657,12 +853,18 @@ def main():
                             suggestions.append("H tipi makine olduğu için düzenli kontroller sürdürülmeli.")
                         
                         if not suggestions:
-                            st.success("✅ Makine normal parametrelerle çalışıyor. Rutin bakım yeterli.")
+                            st.markdown('<div style="background-color: rgba(46, 204, 113, 0.3); color: #ffffff; padding: 15px; border-radius: 5px; text-align: center; font-weight: bold; border-left: 4px solid #2ECC71;">' +
+                                        '✅ Makine normal parametrelerle çalışıyor. Rutin bakım yeterli.' +
+                                        '</div>', unsafe_allow_html=True)
                         else:
                             for suggestion in suggestions:
                                 st.info(f"👉 {suggestion}")
                             
-                            st.success("✅ Acil bakım gerekmiyor, ancak belirtilen noktalara dikkat edilmeli.")
+                            st.markdown('<div style="background-color: rgba(46, 204, 113, 0.3); color: #ffffff; padding: 15px; border-radius: 5px; margin-top: 15px; text-align: center; font-weight: bold; border-left: 4px solid #2ECC71;">' +
+                                        '✅ Acil bakım gerekmiyor, ancak belirtilen noktalara dikkat edilmeli.' +
+                                        '</div>', unsafe_allow_html=True)
+
+                    st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.warning("Tahminde bulunmak için önce modeli eğitmeniz gerekmektedir. Sol paneldeki 'Modeli Eğit ve Değerlendir' butonuna tıklayın.")
         
@@ -690,8 +892,8 @@ def main():
             - **Rotational speed [rpm]**: Dönüş hızı (dakikada devir)
             - **Torque [Nm]**: Tork değeri (Newton metre)
             - **Tool wear [min]**: Alet aşınması (dakika)
-            - **Machine failure**: Makine arızası (0: Arıza yok, 1: Arıza var)
-            - **TWF, HDF, PWF, OSF, RNF**: Farklı arıza türleri
+            - **Target**: Makine arızası (0: Arıza yok, 1: Arıza var)
+            - **Failure Type**: Farklı arıza türleri
             
             ### 💡 Prediktif Bakımın Faydaları
             
