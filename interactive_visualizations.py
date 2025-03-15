@@ -14,17 +14,14 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import kagglehub
-from kagglehub import KaggleDatasetAdapter
+# import kagglehub
+# from kagglehub import KaggleDatasetAdapter
 
 def load_maintenance_data():
-    """Kaggle'dan bakım veri setini yükler"""
+    """Bakım veri setini yerel dosyadan yükler"""
     try:
-        df = kagglehub.load_dataset(
-            KaggleDatasetAdapter.PANDAS,
-            "shivamb/machine-predictive-maintenance-classification",
-            "",
-        )
+        file_path = "data/predictive_maintenance.csv"
+        df = pd.read_csv(file_path)
         print(f"Veri seti başarıyla yüklendi. Boyut: {df.shape}")
         return df
     except Exception as e:
@@ -32,284 +29,404 @@ def load_maintenance_data():
         return None
 
 def plot_failure_distribution(df):
-    """Arıza dağılımı pasta grafiği"""
-    failure_counts = df['Machine failure'].value_counts().reset_index()
+    """Arıza dağılımını gösteren pasta grafiği oluşturur"""
+    # Arıza dağılımı
+    failure_counts = df['Target'].value_counts().reset_index()
     failure_counts.columns = ['Durum', 'Sayı']
     failure_counts['Durum'] = failure_counts['Durum'].map({0: 'Normal', 1: 'Arıza'})
     
+    # Pasta grafiği
     fig = px.pie(
         failure_counts, 
         values='Sayı', 
         names='Durum',
-        title='Makine Durumu Dağılımı',
+        title='Makine Arıza Dağılımı',
         color='Durum',
-        color_discrete_map={'Normal': '#2ECC71', 'Arıza': '#E74C3C'},
+        color_discrete_map={'Normal': '#2ecc71', 'Arıza': '#e74c3c'},
         hole=0.4
     )
-    
-    fig.update_traces(textposition='inside', textinfo='percent+label', 
-                     textfont_size=14, pull=[0, 0.1])
-    
+    fig.update_traces(textinfo='percent+value', textfont_size=14)
     fig.update_layout(
-        title_font_size=22,
-        legend_title_font_size=16,
-        font=dict(size=14),
-        height=600,
-        width=800
+        title_font_size=20,
+        showlegend=True,
+        legend=dict(orientation='h', yanchor='top', y=-0.1)
     )
     
     return fig
 
 def plot_failure_types(df):
-    """Arıza türleri dağılımı"""
-    failure_types = df[['TWF', 'HDF', 'PWF', 'OSF', 'RNF']].sum().reset_index()
+    """Arıza türleri dağılımı görselleştirmesi"""
+    # Arıza türleri dağılımı
+    failure_types = df[df['Target'] == 1]['Failure Type'].value_counts().reset_index()
     failure_types.columns = ['Arıza Türü', 'Sayı']
     
-    # Arıza türlerinin tam adları
-    failure_names = {
-        'TWF': 'Takım Aşınma Arızası',
-        'HDF': 'Isı Dağılım Arızası',
-        'PWF': 'Güç Arızası',
-        'OSF': 'Aşırı Zorlanma Arızası',
-        'RNF': 'Rastgele Arıza'
-    }
+    # Renk skalasını tanımlayalım
+    colors = px.colors.qualitative.Plotly
     
-    failure_types['Arıza Adı'] = failure_types['Arıza Türü'].map(failure_names)
-    
+    # Bar grafiği
     fig = px.bar(
         failure_types, 
         x='Arıza Türü', 
         y='Sayı',
+        color='Arıza Türü',
         text='Sayı',
-        hover_data=['Arıza Adı'],
-        color='Sayı',
-        color_continuous_scale='Viridis',
-        title='Arıza Türleri Dağılımı'
+        title='Arıza Türleri Dağılımı',
+        color_discrete_sequence=colors
     )
     
-    fig.update_traces(texttemplate='%{text}', textposition='outside')
+    fig.update_traces(
+        textposition='outside', 
+        textfont=dict(size=14),
+        marker_line_width=2
+    )
     
     fig.update_layout(
-        title_font_size=22,
+        title_font_size=20,
         xaxis_title='Arıza Türü',
-        yaxis_title='Arıza Sayısı',
+        yaxis_title='Sayı',
         xaxis_title_font_size=16,
         yaxis_title_font_size=16,
         height=600,
-        width=900
+        width=800,
+        showlegend=False
     )
     
     return fig
 
 def plot_3d_sensor_space(df):
-    """3D sensör uzayında makinelerin dağılımı"""
+    """3D sensör uzayı görselleştirmesi"""
+    # 3D scatter plot
     fig = px.scatter_3d(
-        df, 
-        x='Air temperature [K]', 
-        y='Rotational speed [rpm]', 
-        z='Torque [Nm]',
-        color='Machine failure',
-        symbol='Type',
-        size='Tool wear [min]',
-        size_max=15,
+        df,
+        x='Rotational speed [rpm]',
+        y='Torque [Nm]',
+        z='Tool wear [min]',
+        color='Target',
+        color_discrete_map={0: '#2ecc71', 1: '#e74c3c'},
         opacity=0.7,
-        color_discrete_map={0: '#2ECC71', 1: '#E74C3C'},
-        title='Makinelerin 3D Sensör Uzayındaki Dağılımı'
+        size='Tool wear [min]',
+        size_max=10,
+        symbol='Type',
+        title='3D Sensör Uzayında Makine Durumu',
+        labels={
+            'Rotational speed [rpm]': 'Dönüş Hızı (rpm)',
+            'Torque [Nm]': 'Tork (Nm)',
+            'Tool wear [min]': 'Alet Aşınması (dk)',
+            'Target': 'Durum',
+            'Type': 'Ürün Tipi'
+        }
     )
     
     fig.update_layout(
-        title_font_size=20,
         scene=dict(
-            xaxis_title='Hava Sıcaklığı (K)',
-            yaxis_title='Dönüş Hızı (rpm)',
-            zaxis_title='Tork (Nm)',
-            xaxis_title_font_size=14,
-            yaxis_title_font_size=14,
-            zaxis_title_font_size=14,
+            xaxis_title='Dönüş Hızı (rpm)',
+            yaxis_title='Tork (Nm)',
+            zaxis_title='Alet Aşınması (dk)'
         ),
+        title_font_size=20,
         height=800,
-        width=1000
+        legend=dict(title="Durum")
     )
     
     return fig
 
 def plot_interactive_correlation(df):
-    """İnteraktif korelasyon matrisi"""
-    numerical_cols = ['Air temperature [K]', 'Process temperature [K]', 
-                     'Rotational speed [rpm]', 'Torque [Nm]', 'Tool wear [min]',
-                     'Machine failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF']
+    """İnteraktif korelasyon matrisi görselleştirmesi"""
+    # Korelasyon için sadece sayısal değişkenleri seçelim
+    numeric_columns = ['Air temperature [K]', 'Process temperature [K]', 
+                      'Rotational speed [rpm]', 'Torque [Nm]', 'Tool wear [min]', 
+                      'Target']
     
-    corr = df[numerical_cols].corr().round(2)
+    # Korelasyon matrisi
+    corr = df[numeric_columns].corr().round(2)
     
+    # Heatmap
     fig = px.imshow(
         corr,
         text_auto=True,
+        aspect="auto",
         color_continuous_scale='RdBu_r',
-        title='Değişkenler Arası Korelasyon Matrisi',
-        aspect="auto"
+        title="Değişkenler Arası Korelasyon Matrisi"
     )
     
     fig.update_layout(
         title_font_size=20,
-        height=800,
-        width=900
-    )
-    
-    return fig
-
-def plot_failure_by_type(df):
-    """Ürün tiplerine göre arıza oranları"""
-    type_failure = df.groupby('Type')['Machine failure'].mean().reset_index()
-    type_failure.columns = ['Ürün Tipi', 'Arıza Oranı']
-    type_failure['Arıza Oranı'] = type_failure['Arıza Oranı'] * 100
-    
-    # Ürün tipi açıklamaları
-    type_names = {
-        'L': 'Düşük',
-        'M': 'Orta',
-        'H': 'Yüksek'
-    }
-    
-    type_failure['Tip Açıklaması'] = type_failure['Ürün Tipi'].map(type_names)
-    
-    fig = px.bar(
-        type_failure, 
-        x='Ürün Tipi', 
-        y='Arıza Oranı',
-        color='Ürün Tipi',
-        text='Arıza Oranı',
-        hover_data=['Tip Açıklaması'],
-        title='Ürün Tiplerine Göre Arıza Oranları (%)',
-        color_discrete_sequence=px.colors.qualitative.G10
-    )
-    
-    fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
-    
-    fig.update_layout(
-        title_font_size=22,
-        xaxis_title='Ürün Tipi',
-        yaxis_title='Arıza Oranı (%)',
-        xaxis_title_font_size=16,
-        yaxis_title_font_size=16,
-        height=600,
+        height=700,
         width=800
     )
     
     return fig
 
+def plot_failure_by_type(df):
+    """Ürün tiplerine göre arıza oranları görselleştirmesi"""
+    # Ürün tipine göre arıza oranı
+    type_failure = df.groupby('Type')['Target'].mean().reset_index()
+    type_failure['Arıza Oranı (%)'] = type_failure['Target'] * 100
+    
+    # Bar grafiği
+    fig = px.bar(
+        type_failure,
+        x='Type',
+        y='Arıza Oranı (%)',
+        color='Type',
+        text='Arıza Oranı (%)',
+        title='Ürün Tiplerine Göre Arıza Oranları',
+        labels={'Type': 'Ürün Tipi', 'Arıza Oranı (%)': 'Arıza Oranı (%)'},
+        color_discrete_map={'L': '#3498db', 'M': '#f1c40f', 'H': '#e74c3c'}
+    )
+    
+    fig.update_traces(
+        texttemplate='%{text:.2f}%',
+        textposition='outside',
+        textfont=dict(size=14)
+    )
+    
+    fig.update_layout(
+        title_font_size=20,
+        xaxis_title_font_size=16,
+        yaxis_title_font_size=16,
+        height=600,
+        width=800,
+        xaxis=dict(categoryorder='total descending')
+    )
+    
+    # Y eksenini yüzde formatında gösterelim
+    fig.update_yaxes(ticksuffix="%")
+    
+    return fig
+
 def plot_sensor_distributions(df):
-    """Sensör değerlerinin arıza durumuna göre dağılımı"""
+    """Sensör değerlerinin arıza durumuna göre dağılımı görselleştirmesi"""
     sensors = ['Air temperature [K]', 'Process temperature [K]', 
               'Rotational speed [rpm]', 'Torque [Nm]', 'Tool wear [min]']
     
-    # 2x3 subplot oluştur
-    fig = make_subplots(rows=2, cols=3, subplot_titles=sensors)
+    # Alt grafikleri oluştur
+    fig = make_subplots(rows=len(sensors), cols=1, 
+                        subplot_titles=[f"{sensor} Dağılımı" for sensor in sensors],
+                        vertical_spacing=0.05)
     
-    colors = {'Normal': '#2ECC71', 'Arıza': '#E74C3C'}
-    
+    # Her sensör için histogram
     for i, sensor in enumerate(sensors):
-        row = i // 3 + 1
-        col = i % 3 + 1
-        
-        # Normal makineler için histogram
+        # Normal durum histogramı
         fig.add_trace(
             go.Histogram(
-                x=df[df['Machine failure'] == 0][sensor],
-                name='Normal',
+                x=df[df['Target'] == 0][sensor],
+                name="Normal",
+                marker_color='#2ecc71',
                 opacity=0.7,
-                marker_color=colors['Normal'],
+                histnorm='probability',
                 nbinsx=30
             ),
-            row=row, col=col
+            row=i+1, col=1
         )
         
-        # Arızalı makineler için histogram
+        # Arıza durumu histogramı
         fig.add_trace(
             go.Histogram(
-                x=df[df['Machine failure'] == 1][sensor],
-                name='Arıza',
+                x=df[df['Target'] == 1][sensor],
+                name="Arıza",
+                marker_color='#e74c3c',
                 opacity=0.7,
-                marker_color=colors['Arıza'],
+                histnorm='probability',
                 nbinsx=30
             ),
-            row=row, col=col
+            row=i+1, col=1
         )
+        
+        # Her grafik için başlık ekleyelim
+        fig.update_xaxes(title_text=sensor, row=i+1, col=1)
+        fig.update_yaxes(title_text="Olasılık", row=i+1, col=1)
     
+    # Grafik düzeni
     fig.update_layout(
-        title='Sensör Değerlerinin Arıza Durumuna Göre Dağılımı',
+        title_text="Sensör Değerlerinin Arıza Durumuna Göre Dağılımı",
         title_font_size=20,
-        barmode='overlay',
-        height=800,
-        width=1200,
-        showlegend=True
+        height=1000,
+        width=900,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
     
     return fig
 
-def plot_animated_temperature_torque(df):
-    """Hava sıcaklığı ve tork ilişkisinin animasyonu"""
-    df_copy = df.copy()
+def plot_animated_temp_torque(df):
+    """Sıcaklık ve tork ilişkisinin alet aşınmasına göre animasyonlu görselleştirmesi"""
+    # Alet aşınması için aralıklar belirleyelim
+    tool_wear_ranges = np.linspace(min(df['Tool wear [min]']), max(df['Tool wear [min]']), 20)
     
-    # Tool wear aralıklarına göre gruplama
-    bins = [0, 50, 100, 150, 200, 250]
-    labels = ['0-50', '51-100', '101-150', '151-200', '201-250']
-    df_copy['Tool wear range'] = pd.cut(df_copy['Tool wear [min]'], bins=bins, labels=labels)
+    # Her aralık için frame oluşturarak animasyon hazırlayalım
+    frames = []
+    for i in range(len(tool_wear_ranges)-1):
+        low, high = tool_wear_ranges[i], tool_wear_ranges[i+1]
+        
+        # Aralık içindeki verileri filtreleyelim
+        mask = (df['Tool wear [min]'] >= low) & (df['Tool wear [min]'] < high)
+        frame_data = df[mask]
+        
+        # Frame
+        frame = go.Frame(
+            data=[
+                go.Scatter(
+                    x=frame_data[frame_data['Target'] == 0]['Air temperature [K]'],
+                    y=frame_data[frame_data['Target'] == 0]['Torque [Nm]'],
+                    mode='markers',
+                    marker=dict(color='#2ecc71', size=10, opacity=0.7),
+                    name='Normal'
+                ),
+                go.Scatter(
+                    x=frame_data[frame_data['Target'] == 1]['Air temperature [K]'],
+                    y=frame_data[frame_data['Target'] == 1]['Torque [Nm]'],
+                    mode='markers',
+                    marker=dict(color='#e74c3c', size=10, opacity=0.7),
+                    name='Arıza'
+                )
+            ],
+            name=f'Alet Aşınması: {low:.1f}-{high:.1f} dk'
+        )
+        frames.append(frame)
     
-    fig = px.scatter(
-        df_copy,
-        x='Air temperature [K]',
-        y='Torque [Nm]',
-        color='Machine failure',
-        color_discrete_map={0: '#2ECC71', 1: '#E74C3C'},
-        size='Process temperature [K]',
-        size_max=15,
-        hover_name='UDI',
-        hover_data=['Type', 'Rotational speed [rpm]', 'Tool wear [min]'],
-        animation_frame='Tool wear range',
-        title='Hava Sıcaklığı ve Tork İlişkisi (Alet Aşınmasına Göre Animasyon)'
+    # İlk veri noktalarını gösterecek scatter plot
+    scatter_normal = go.Scatter(
+        x=df[df['Target'] == 0]['Air temperature [K]'].iloc[:10],
+        y=df[df['Target'] == 0]['Torque [Nm]'].iloc[:10],
+        mode='markers',
+        marker=dict(color='#2ecc71', size=10, opacity=0.7),
+        name='Normal'
     )
     
+    scatter_failure = go.Scatter(
+        x=df[df['Target'] == 1]['Air temperature [K]'].iloc[:10],
+        y=df[df['Target'] == 1]['Torque [Nm]'].iloc[:10],
+        mode='markers',
+        marker=dict(color='#e74c3c', size=10, opacity=0.7),
+        name='Arıza'
+    )
+    
+    # Ana figür
+    fig = go.Figure(
+        data=[scatter_normal, scatter_failure],
+        frames=frames
+    )
+    
+    # Animasyon kontrolleri ekle
     fig.update_layout(
+        title='Sıcaklık ve Tork İlişkisinin Alet Aşınmasına Göre Değişimi',
         title_font_size=20,
         xaxis_title='Hava Sıcaklığı (K)',
         yaxis_title='Tork (Nm)',
         xaxis_title_font_size=16,
         yaxis_title_font_size=16,
         height=700,
-        width=1000
+        width=900,
+        updatemenus=[
+            dict(
+                type="buttons",
+                buttons=[
+                    dict(
+                        label="Oynat",
+                        method="animate",
+                        args=[None, {"frame": {"duration": 500, "redraw": True}, 
+                                     "fromcurrent": True}]
+                    ),
+                    dict(
+                        label="Durdur",
+                        method="animate",
+                        args=[[None], {"frame": {"duration": 0, "redraw": True}, 
+                                       "mode": "immediate", "transition": {"duration": 0}}]
+                    )
+                ],
+                direction="left",
+                pad={"r": 10, "t": 10},
+                showactive=False,
+                x=0.1,
+                y=0,
+                xanchor="right",
+                yanchor="top"
+            )
+        ],
+        sliders=[
+            dict(
+                steps=[
+                    dict(
+                        method="animate",
+                        args=[
+                            [f.name],
+                            {"frame": {"duration": 300, "redraw": True}, 
+                             "mode": "immediate", "transition": {"duration": 300}}
+                        ],
+                        label=f.name
+                    )
+                    for f in frames
+                ],
+                active=0,
+                transition={"duration": 300},
+                x=0.1,
+                y=0,
+                currentvalue={
+                    "font": {"size": 12},
+                    "prefix": "Aşınma: ",
+                    "visible": True,
+                    "xanchor": "right"
+                },
+                len=0.9
+            )
+        ]
     )
     
     return fig
 
 def main():
     """Ana fonksiyon"""
+    print("Endüstriyel Bakım İnteraktif Görselleştirme Uygulaması")
+    
+    # Veri setini yükle
     df = load_maintenance_data()
     
     if df is not None:
-        # Tüm grafikleri oluştur
-        print("İnteraktif grafikler oluşturuluyor...")
+        # Arıza dağılımı
+        fig_failure_dist = plot_failure_distribution(df)
+        fig_failure_dist.write_html("ariza_dagilimi.html")
+        print("ariza_dagilimi.html dosyası oluşturuldu.")
         
-        # Her grafiği oluştur ve HTML olarak kaydet
-        plots = {
-            "ariza_dagilimi": plot_failure_distribution(df),
-            "ariza_turleri": plot_failure_types(df),
-            "3d_sensor_uzayi": plot_3d_sensor_space(df),
-            "korelasyon_matrisi": plot_interactive_correlation(df),
-            "urun_tipleri_ariza": plot_failure_by_type(df),
-            "sensor_dagilimi": plot_sensor_distributions(df),
-            "sicaklik_tork_animasyon": plot_animated_temperature_torque(df)
-        }
+        # Arıza türleri dağılımı
+        fig_failure_types = plot_failure_types(df)
+        fig_failure_types.write_html("ariza_turleri.html")
+        print("ariza_turleri.html dosyası oluşturuldu.")
         
-        print("Toplam 7 interaktif grafik oluşturuldu!")
+        # 3D sensör uzayı
+        fig_3d = plot_3d_sensor_space(df)
+        fig_3d.write_html("3d_sensor_uzayi.html")
+        print("3d_sensor_uzayi.html dosyası oluşturuldu.")
         
-        # Grafikleri HTML dosyalarına kaydet
-        for name, plot in plots.items():
-            plot.write_html(f"{name}.html")
-            print(f"{name}.html dosyası kaydedildi.")
+        # Korelasyon matrisi
+        fig_corr = plot_interactive_correlation(df)
+        fig_corr.write_html("korelasyon_matrisi.html")
+        print("korelasyon_matrisi.html dosyası oluşturuldu.")
         
-        print("Tüm grafikler başarıyla kaydedildi!")
+        # Ürün tiplerine göre arıza oranları
+        fig_type = plot_failure_by_type(df)
+        fig_type.write_html("urun_tipleri_ariza.html")
+        print("urun_tipleri_ariza.html dosyası oluşturuldu.")
+        
+        # Sensör dağılımları
+        fig_sensors = plot_sensor_distributions(df)
+        fig_sensors.write_html("sensor_dagilimi.html")
+        print("sensor_dagilimi.html dosyası oluşturuldu.")
+        
+        # Animasyonlu sıcaklık-tork ilişkisi
+        fig_animated = plot_animated_temp_torque(df)
+        fig_animated.write_html("sicaklik_tork_animasyon.html")
+        print("sicaklik_tork_animasyon.html dosyası oluşturuldu.")
+        
+        print("Tüm görselleştirmeler başarıyla oluşturuldu!")
+        
     else:
-        print("Veri yüklenemediği için grafikler oluşturulamadı.")
+        print("Veri yüklenemediği için görselleştirmeler oluşturulamadı.")
 
 if __name__ == "__main__":
-    main() 
+    main()
