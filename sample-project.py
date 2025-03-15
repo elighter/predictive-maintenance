@@ -1,15 +1,29 @@
-# Makine Bakımı Tahmini için Örnek Proje
-# Python 3.8+ ile test edilmiştir
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-# Gerekli kütüphaneleri içe aktaralım
+"""
+Makine Öğrenmesi ile Endüstriyel Bakım Tahmin Projesi
+Örnek Uygulama
+
+Bu modül, makine bakımı arıza tahmin modelini eğitip değerlendiren,
+tüm temel iş akışını gösteren örnek bir uygulamadır.
+"""
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
 import warnings
-warnings.filterwarnings('ignore')
-import matplotlib.ticker as mtick
-from matplotlib.colors import LinearSegmentedColormap
+
+# Uyarıları gizle
+warnings.filterwarnings("ignore")
 
 # Görselleştirme ayarları
 plt.style.use('seaborn-v0_8-whitegrid')
@@ -17,246 +31,240 @@ plt.rcParams['figure.figsize'] = (12, 8)
 plt.rcParams['font.size'] = 12
 sns.set_palette('viridis')
 
-# Makine öğrenmesi kütüphaneleri
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier, plot_tree
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc, roc_auc_score
-from sklearn.inspection import permutation_importance
-import shap
+def load_data():
+    """Bakım veri setini yerel dosyadan yükler"""
+    try:
+        file_path = "data/predictive_maintenance.csv"
+        df = pd.read_csv(file_path)
+        print(f"Veri seti başarıyla yüklendi. Boyut: {df.shape}")
+        return df
+    except Exception as e:
+        print(f"Veri yüklenirken hata: {e}")
+        return None
 
-# Veri yükleme fonksiyonu
-def load_maintenance_data(file_path=None):
-    """
-    Bakım verisini yükler. Eğer dosya yolu belirtilmezse sentetik veri oluşturur.
-    """
-    if file_path:
-        try:
-            return pd.read_csv(file_path)
-        except Exception as e:
-            print(f"Veri yüklenirken hata oluştu: {e}")
-            print("Sentetik veri oluşturulacak...")
-    
-    # Sentetik veri oluştur
-    np.random.seed(42)
-    n_samples = 10000
-    
-    # UDI ve Product ID
-    udi = np.arange(1, n_samples + 1)
-    product_ids = [f"P_{np.random.randint(1, 11)}" for _ in range(n_samples)]
-    
-    # Ürün tipi (L, M, H)
-    types = np.random.choice(['L', 'M', 'H'], size=n_samples, p=[0.3, 0.4, 0.3])
-    
-    # Sensör verileri
-    air_temp = np.random.normal(300, 5, n_samples)  # Ortalama 300K, std 5K
-    process_temp = air_temp + np.random.normal(15, 3, n_samples)  # İşlem sıcaklığı genelde hava sıcaklığından yüksek
-    
-    # Dönüş hızı (rpm) - Tipine bağlı olarak farklı dağılımlar
-    rotational_speed = np.zeros(n_samples)
-    for i, t in enumerate(types):
-        if t == 'L':
-            rotational_speed[i] = np.random.normal(1500, 100, 1)
-        elif t == 'M':
-            rotational_speed[i] = np.random.normal(2000, 150, 1)
-        else:  # H tipi
-            rotational_speed[i] = np.random.normal(2500, 200, 1)
-    
-    # Tork değerleri
-    torque = np.random.normal(40, 10, n_samples) + (types == 'H') * 10
-    
-    # Alet aşınması - Dönüş hızı ve tork ile ilişkili
-    tool_wear = np.random.exponential(50, n_samples) + rotational_speed / 50 + torque / 2
-    
-    # Arıza olasılığı faktörleri
-    failure_prob = (
-        0.01 +  # Temel arıza olasılığı
-        0.1 * (tool_wear > 200) +  # Alet aşınması etkisi
-        0.05 * (process_temp > 320) +  # Yüksek işlem sıcaklığı etkisi
-        0.03 * (rotational_speed > 2400) +  # Yüksek dönüş hızı etkisi
-        0.02 * (types == 'H')  # H tipi ürün etkisi
-    )
-    
-    # Arıza durumu
-    machine_failure = np.random.binomial(1, failure_prob)
-    
-    # Arıza türleri
-    twf = np.zeros(n_samples, dtype=int)  # Tool wear failure
-    hdf = np.zeros(n_samples, dtype=int)  # Heat dissipation failure
-    pwf = np.zeros(n_samples, dtype=int)  # Power failure
-    osf = np.zeros(n_samples, dtype=int)  # Overstrain failure
-    rnf = np.zeros(n_samples, dtype=int)  # Random failure
-    
-    # Arıza türlerini belirle
-    for i in range(n_samples):
-        if machine_failure[i] == 1:
-            failure_type = np.random.choice(['TWF', 'HDF', 'PWF', 'OSF', 'RNF'], p=[0.3, 0.25, 0.2, 0.15, 0.1])
-            if failure_type == 'TWF':
-                twf[i] = 1
-            elif failure_type == 'HDF':
-                hdf[i] = 1
-            elif failure_type == 'PWF':
-                pwf[i] = 1
-            elif failure_type == 'OSF':
-                osf[i] = 1
-            else:  # RNF
-                rnf[i] = 1
-    
-    # DataFrame oluştur
-    df = pd.DataFrame({
-        'UDI': udi,
-        'Product ID': product_ids,
-        'Type': types,
-        'Air temperature [K]': air_temp,
-        'Process temperature [K]': process_temp,
-        'Rotational speed [rpm]': rotational_speed,
-        'Torque [Nm]': torque,
-        'Tool wear [min]': tool_wear,
-        'Machine failure': machine_failure,
-        'TWF': twf,
-        'HDF': hdf,
-        'PWF': pwf,
-        'OSF': osf,
-        'RNF': rnf
-    })
-    
-    return df
-
-# Veri keşfi ve görselleştirme fonksiyonları
 def explore_data(df):
-    """
-    Veri setini keşfeder ve temel istatistikleri görüntüler
-    """
-    print(f"Veri seti boyutu: {df.shape}")
-    print("\nVeri seti örneği:")
+    """Veri setinin keşif analizini yapar"""
+    print("\n--- Veri Seti Keşif Analizi ---")
+    
+    # İlk birkaç satırı kontrol et
+    print("\nİlk 5 satır:")
     print(df.head())
     
-    print("\nVeri türleri:")
-    print(df.dtypes)
+    # Veri seti hakkında genel bilgi
+    print("\nVeri seti bilgisi:")
+    print(df.info())
     
-    print("\nÖzet istatistikler:")
+    # İstatistiksel özetler
+    print("\nİstatistiksel özet:")
     print(df.describe())
     
-    print("\nEksik değerler:")
-    print(df.isnull().sum())
+    # Hedef değişken dağılımı
+    print("\nHedef değişken dağılımı:")
+    print(df['Target'].value_counts(normalize=True) * 100)
     
-    print("\nArıza dağılımı:")
-    print(df['Machine failure'].value_counts())
-    print(f"Arıza oranı: %{df['Machine failure'].mean() * 100:.2f}")
+    # Kategorik değişkenlerin incelenmesi
+    print("\nKategorik değişken analizi:")
+    for col in ['Type', 'Failure Type']:
+        if col in df.columns:
+            print(f"\n{col} dağılımı:")
+            print(df[col].value_counts())
     
-    print("\nArıza türleri dağılımı:")
-    failure_types = df[['TWF', 'HDF', 'PWF', 'OSF', 'RNF']].sum()
-    print(failure_types)
-    
-    print("\nÜrün tiplerine göre arıza oranları:")
-    type_failure = df.groupby('Type')['Machine failure'].mean() * 100
-    for t, rate in type_failure.items():
-        print(f"{t} tipi: %{rate:.2f}")
+    # Eksik değer kontrolü
+    missing_values = df.isnull().sum()
+    if missing_values.sum() > 0:
+        print("\nEksik değerler:")
+        print(missing_values[missing_values > 0])
+    else:
+        print("\nVeri setinde eksik değer bulunmamaktadır.")
 
-def plot_data_distributions(df):
-    """
-    Veri dağılımlarını görselleştirir
-    """
-    # Sayısal değişkenlerin dağılımları
-    numerical_cols = ['Air temperature [K]', 'Process temperature [K]', 
-                    'Rotational speed [rpm]', 'Torque [Nm]', 'Tool wear [min]']
+def prepare_data(df):
+    """Veriyi model için hazırlar"""
+    print("\n--- Veri Hazırlama ---")
     
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    axes = axes.flatten()
+    # Gereksiz sütunları çıkar
+    X = df.drop(['UDI', 'Product ID', 'Target', 'Failure Type'], axis=1)
+    y = df['Target']
     
-    for i, col in enumerate(numerical_cols):
-        sns.histplot(data=df, x=col, hue='Machine failure', kde=True, ax=axes[i])
-        axes[i].set_title(f'{col} Dağılımı')
-        axes[i].grid(True)
+    print(f"Özellik sayısı: {X.shape[1]}")
+    print(f"Özellikler: {X.columns.tolist()}")
     
-    # Arıza dağılımı
-    failure_counts = df['Machine failure'].value_counts()
-    axes[5].pie(failure_counts, labels=['Normal', 'Arıza'], autopct='%1.1f%%', startangle=90, colors=['lightgreen', 'salmon'])
-    axes[5].set_title('Makine Arıza Dağılımı')
+    # Kategorik ve sayısal değişkenleri ayır
+    categorical_features = ['Type']
+    numerical_features = [col for col in X.columns if col not in categorical_features]
     
-    plt.tight_layout()
-    plt.show()
+    print(f"\nKategorik özellikler: {categorical_features}")
+    print(f"Sayısal özellikler: {numerical_features}")
     
-    # Arıza türleri dağılımı
-    failure_types = df[['TWF', 'HDF', 'PWF', 'OSF', 'RNF']].sum()
-    plt.figure(figsize=(10, 6))
-    ax = failure_types.plot(kind='bar', color='darkred')
-    ax.set_title('Arıza Türleri Dağılımı')
-    ax.set_xlabel('Arıza Türü')
-    ax.set_ylabel('Sayı')
-    for i, v in enumerate(failure_types):
-        ax.text(i, v + 0.1, str(v), ha='center')
-    plt.tight_layout()
-    plt.show()
+    # Eğitim ve test setlerine ayır
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42, stratify=y
+    )
     
-    # Ürün tiplerine göre arıza oranları
-    plt.figure(figsize=(10, 6))
-    type_failure = df.groupby('Type')['Machine failure'].mean() * 100
-    ax = type_failure.plot(kind='bar', color='darkblue')
-    ax.set_title('Ürün Tiplerine Göre Arıza Oranları')
-    ax.set_xlabel('Ürün Tipi')
-    ax.set_ylabel('Arıza Oranı (%)')
-    ax.yaxis.set_major_formatter(mtick.PercentFormatter())
-    for i, v in enumerate(type_failure):
-        ax.text(i, v + 1, f"%{v:.2f}", ha='center')
-    plt.tight_layout()
-    plt.show()
+    print(f"\nEğitim seti boyutu: {X_train.shape}")
+    print(f"Test seti boyutu: {X_test.shape}")
+    
+    # Önişleme pipeline'ı
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numerical_features),
+            ('cat', OneHotEncoder(drop='first'), categorical_features)
+        ])
+    
+    return X_train, X_test, y_train, y_test, preprocessor
 
-def plot_correlations(df):
-    """
-    Değişkenler arasındaki korelasyonları görselleştirir
-    """
-    # Sayısal değişkenlerin korelasyon matrisi
-    numerical_cols = ['Air temperature [K]', 'Process temperature [K]', 
-                     'Rotational speed [rpm]', 'Torque [Nm]', 'Tool wear [min]',
-                     'Machine failure']
+def train_evaluate_model(X_train, X_test, y_train, y_test, preprocessor):
+    """Modeli eğitir ve değerlendirir"""
+    print("\n--- Model Eğitimi ve Değerlendirmesi ---")
     
-    corr = df[numerical_cols].corr()
+    # Model pipeline'ı oluştur
+    model = Pipeline([
+        ('preprocessor', preprocessor),
+        ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
+    ])
     
-    plt.figure(figsize=(12, 10))
-    mask = np.triu(np.ones_like(corr, dtype=bool))
-    cmap = sns.diverging_palette(230, 20, as_cmap=True)
-    sns.heatmap(corr, mask=mask, cmap=cmap, annot=True, center=0, square=True, linewidths=.5)
-    plt.title('Değişkenler Arası Korelasyon Matrisi')
-    plt.tight_layout()
-    plt.show()
+    # Çapraz doğrulama skoru
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
+    print(f"5-katlı çapraz doğrulama doğruluk skorları: {cv_scores}")
+    print(f"Ortalama çapraz doğrulama doğruluk skoru: {cv_scores.mean():.4f} (±{cv_scores.std():.4f})")
     
-    # Sıcaklık ve arıza ilişkisi
-    plt.figure(figsize=(12, 8))
-    sns.scatterplot(data=df, x='Air temperature [K]', y='Process temperature [K]', 
-                   hue='Machine failure', size='Tool wear [min]', sizes=(20, 200))
-    plt.title('Hava Sıcaklığı, İşlem Sıcaklığı ve Arıza İlişkisi')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    # Modeli eğit
+    model.fit(X_train, y_train)
+    print("Model eğitildi.")
     
-    # Dönüş hızı ve tork ilişkisi
-    plt.figure(figsize=(12, 8))
-    sns.scatterplot(data=df, x='Rotational speed [rpm]', y='Torque [Nm]', 
-                   hue='Machine failure', style='Type')
-    plt.title('Dönüş Hızı, Tork ve Arıza İlişkisi')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    # Test seti üzerinde tahmin yap
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
+    # Performans metrikleri
+    print("\nPerformans Metrikleri:")
+    print(f"Doğruluk: {accuracy_score(y_test, y_pred):.4f}")
+    print(f"Kesinlik: {precision_score(y_test, y_pred):.4f}")
+    print(f"Duyarlılık: {recall_score(y_test, y_pred):.4f}")
+    print(f"F1 Skoru: {f1_score(y_test, y_pred):.4f}")
+    
+    # Sınıflandırma raporu
+    print("\nSınıflandırma Raporu:")
+    print(classification_report(y_test, y_pred))
+    
+    # Karmaşıklık matrisini görselleştir
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Karmaşıklık Matrisi')
+    plt.xlabel('Tahmin Edilen Sınıf')
+    plt.ylabel('Gerçek Sınıf')
+    plt.savefig('confusion_matrix.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print("Karmaşıklık matrisi 'confusion_matrix.png' olarak kaydedildi.")
+    
+    # ROC eğrisini görselleştir
+    fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+    roc_auc = auc(fpr, tpr)
+    
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC Eğrisi (AUC = {roc_auc:.3f})')
+    plt.plot([0, 1], [0, 1], color='gray', lw=1, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('Yanlış Pozitif Oranı')
+    plt.ylabel('Doğru Pozitif Oranı')
+    plt.title('ROC Eğrisi')
+    plt.legend(loc="lower right")
+    plt.savefig('roc_curve.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print("ROC eğrisi 'roc_curve.png' olarak kaydedildi.")
+    
+    return model
 
-def feature_engineering(df):
-    """
-    Veri setine yeni özellikler ekler
-    """
-    # Kopya oluşturalım
-    df_new = df.copy()
+def feature_importance(model, X_train):
+    """Özellik önem derecelerini görselleştirir"""
+    print("\n--- Özellik Önem Dereceleri ---")
     
-    # Yeni özellikler ekleyelim
-    # 1. Sıcaklık farkı
-    df_new['temp_difference'] = df_new['Process temperature [K]'] - df_new['Air temperature [K]']
+    # Özellik önem derecelerini al
+    feature_names = model.named_steps['preprocessor'].get_feature_names_out()
+    importances = model.named_steps['classifier'].feature_importances_
     
-    # 2. Güç (dönüş hızı * tork)
-    df_new['power'] = df_new['Rotational speed [rpm]'] * df_new['Torque [Nm]'] / 1000  # kW cinsinden
+    # Önem derecelerine göre sırala
+    indices = np.argsort(importances)[::-1]
     
-    # 3. Verimlilik oranı
-    df_new['efficiency_ratio'] = df
+    # En önemli 10 özelliği göster
+    print("\nEn önemli 10 özellik:")
+    for i, idx in enumerate(indices[:10]):
+        print(f"{i+1}. {feature_names[idx]}: {importances[idx]:.4f}")
+    
+    # Görselleştir
+    plt.figure(figsize=(10, 8))
+    sns.barplot(x=importances[indices][:10], y=[feature_names[i] for i in indices][:10])
+    plt.title('Özellik Önem Dereceleri')
+    plt.xlabel('Önem Derecesi')
+    plt.ylabel('Özellik')
+    plt.tight_layout()
+    plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print("Özellik önem dereceleri 'feature_importance.png' olarak kaydedildi.")
+
+def make_predictions(model, sample_count=5):
+    """Örnek tahminler yapar"""
+    print("\n--- Örnek Tahminler ---")
+    
+    # Yeni veri seti yükle (burada örnek olarak test setinden alıyoruz)
+    df = load_data()
+    if df is None:
+        return
+    
+    # Rastgele örnek seç
+    samples = df.sample(sample_count, random_state=42)
+    
+    # Özellikler
+    X_samples = samples.drop(['UDI', 'Product ID', 'Target', 'Failure Type'], axis=1)
+    
+    # Gerçek sınıflar
+    y_true = samples['Target'].values
+    
+    # Tahmin yap
+    y_pred = model.predict(X_samples)
+    y_pred_proba = model.predict_proba(X_samples)[:, 1]
+    
+    # Sonuçları göster
+    print("\nÖrnek Tahminler:")
+    for i, (true, pred, prob) in enumerate(zip(y_true, y_pred, y_pred_proba)):
+        print(f"\nÖrnek {i+1}:")
+        print(f"Özellikler: {X_samples.iloc[i].to_dict()}")
+        print(f"Gerçek Durum: {'Arıza' if true == 1 else 'Normal'}")
+        print(f"Tahmin: {'Arıza' if pred == 1 else 'Normal'}")
+        print(f"Arıza Olasılığı: {prob:.4f}")
+        
+        if true == pred:
+            print("Sonuç: Doğru tahmin ✓")
+        else:
+            print("Sonuç: Yanlış tahmin ✗")
+
+def main():
+    """Ana fonksiyon"""
+    print("=== Makine Öğrenmesi ile Endüstriyel Bakım Tahmin Projesi ===")
+    
+    # Veri yükleme
+    df = load_data()
+    if df is None:
+        return
+    
+    # Veri keşfi
+    explore_data(df)
+    
+    # Veri hazırlama
+    X_train, X_test, y_train, y_test, preprocessor = prepare_data(df)
+    
+    # Model eğitimi ve değerlendirmesi
+    model = train_evaluate_model(X_train, X_test, y_train, y_test, preprocessor)
+    
+    # Özellik önem dereceleri
+    feature_importance(model, X_train)
+    
+    # Örnek tahminler
+    make_predictions(model)
+    
+    print("\n=== Proje Tamamlandı ===")
+    print("Tüm sonuçlar ve grafikler başarıyla kaydedildi.")
+
+if __name__ == "__main__":
+    main()
