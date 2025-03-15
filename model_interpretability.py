@@ -13,8 +13,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import kagglehub
-from kagglehub import KaggleDatasetAdapter
+# import kagglehub
+# from kagglehub import KaggleDatasetAdapter
 
 # Makine öğrenmesi kütüphaneleri
 from sklearn.model_selection import train_test_split
@@ -24,7 +24,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
-from sklearn.inspection import permutation_importance, partial_dependence, plot_partial_dependence
+from sklearn.inspection import permutation_importance, partial_dependence
+# from sklearn.inspection import plot_partial_dependence  # Eski sürümlerde vardı
 
 # SHAP kütüphanesi
 import shap
@@ -36,13 +37,10 @@ plt.rcParams['font.size'] = 12
 sns.set_palette('viridis')
 
 def load_maintenance_data():
-    """Kaggle'dan bakım veri setini yükler"""
+    """Bakım veri setini yerel dosyadan yükler"""
     try:
-        df = kagglehub.load_dataset(
-            KaggleDatasetAdapter.PANDAS,
-            "shivamb/machine-predictive-maintenance-classification",
-            "",
-        )
+        file_path = "data/predictive_maintenance.csv"
+        df = pd.read_csv(file_path)
         print(f"Veri seti başarıyla yüklendi. Boyut: {df.shape}")
         return df
     except Exception as e:
@@ -50,39 +48,45 @@ def load_maintenance_data():
         return None
 
 def prepare_data(df):
-    """Veriyi makine öğrenmesi için hazırlar"""
-    # Hedef değişkeni ve özellikleri ayır
-    X = df.drop(['UDI', 'Product ID', 'Machine failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF'], axis=1)
-    y = df['Machine failure']
+    """Veriyi eğitim ve test için hazırlar"""
+    # UDI, Product ID ve Target değişkenlerini çıkaralım
+    X = df.drop(['UDI', 'Product ID', 'Target', 'Failure Type'], axis=1)
+    y = df['Target']
     
-    # Kategorik ve sayısal değişkenleri ayır
+    # Eğitim ve test setlerine ayıralım
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42, stratify=y
+    )
+    
+    # Kategorik ve sayısal değişkenleri ayıralım
     categorical_features = ['Type']
-    numerical_features = [col for col in X.columns if col not in categorical_features]
+    numerical_features = ['Air temperature [K]', 'Process temperature [K]', 
+                        'Rotational speed [rpm]', 'Torque [Nm]', 'Tool wear [min]']
     
-    # Veri ön işleme pipeline'ı
+    # Önişleme pipeline'ı oluşturalım
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', StandardScaler(), numerical_features),
             ('cat', OneHotEncoder(drop='first'), categorical_features)
-        ])
+        ]
+    )
     
-    # Veriyi eğitim ve test setlerine ayır
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    
-    # Pipeline'ı fit et
+    # Verileri dönüştürelim
     X_train_processed = preprocessor.fit_transform(X_train)
     X_test_processed = preprocessor.transform(X_test)
     
-    # İşlenmiş verileri DataFrame'e dönüştür (SHAP görselleştirmeleri için)
-    one_hot_encoder = preprocessor.named_transformers_['cat']
-    cat_feature_names = one_hot_encoder.get_feature_names_out(['Type'])
+    # Özellik isimlerini alalım (SHAP grafikleri için)
+    ohe_features = preprocessor.named_transformers_['cat'].get_feature_names_out(categorical_features)
+    feature_names = numerical_features + list(ohe_features)
     
-    processed_feature_names = list(numerical_features) + list(cat_feature_names)
+    # Dönüştürülmüş verileri DataFrame olarak oluşturalım (SHAP için)
+    X_train_df = pd.DataFrame(X_train_processed, columns=feature_names)
+    X_test_df = pd.DataFrame(X_test_processed, columns=feature_names)
     
-    X_train_df = pd.DataFrame(X_train_processed, columns=processed_feature_names)
-    X_test_df = pd.DataFrame(X_test_processed, columns=processed_feature_names)
+    numerical_features_idx = list(range(len(numerical_features)))
     
-    return X_train, X_test, X_train_processed, X_test_processed, X_train_df, X_test_df, y_train, y_test, preprocessor
+    return (X_train, X_train_processed, X_train_df, X_test, X_test_processed, X_test_df, 
+            y_train, y_test, feature_names, numerical_features_idx)
 
 def train_models(X_train_processed, y_train):
     """Farklı modelleri eğitir"""
@@ -168,134 +172,141 @@ def plot_feature_importance(models, X_train, feature_names):
     print("Özellik önem dereceleri kaydedildi: feature_importance.png")
 
 def plot_shap_values(models, X_train_df, X_test_df):
-    """SHAP değerlerini görselleştirir"""
+    """SHAP değerleri kullanarak model kararlarını görselleştirir"""
     for name, model in models.items():
         print(f"\n{name} için SHAP değerleri hesaplanıyor...")
         
-        # SHAP açıklayıcı oluştur
-        if name == 'Random Forest':
-            explainer = shap.TreeExplainer(model)
-        elif name == 'Gradient Boosting':
-            explainer = shap.TreeExplainer(model)
-        else:
-            print(f"{name} için SHAP desteği bulunmuyor, atlanıyor.")
-            continue
+        # SHAP açıklayıcısını oluştur
+        explainer = shap.Explainer(model)
         
-        # SHAP değerleri hesapla (örnek olarak test verisinin ilk 100 satırı)
-        sample_size = min(100, X_test_df.shape[0])
-        shap_values = explainer.shap_values(X_test_df.iloc[:sample_size])
+        # Eğitim verileri için SHAP değerlerini hesapla
+        shap_values = explainer(X_train_df)
         
-        # Özet grafiği (tüm özelliklerin toplam etkileri)
-        plt.figure(figsize=(10, 12))
-        shap.summary_plot(shap_values, X_test_df.iloc[:sample_size], plot_type="bar", 
-                         show=False, color='#2574A9')
-        plt.title(f'{name} SHAP Özellik Önem Dereceleri')
+        # SHAP önem grafiği
+        plt.figure(figsize=(12, 8))
+        shap.summary_plot(shap_values, X_train_df, plot_type="bar", show=False)
+        plt.title(f"{name} - SHAP Özellik Önem Grafiği", fontsize=16)
         plt.tight_layout()
         plt.savefig(f'shap_importance_{name.replace(" ", "_").lower()}.png', dpi=300, bbox_inches='tight')
         plt.close()
         
-        # Özet noktasal grafik (her örnek için SHAP değerleri)
-        plt.figure(figsize=(12, 10))
-        shap.summary_plot(shap_values, X_test_df.iloc[:sample_size], show=False)
-        plt.title(f'{name} SHAP Değerleri Dağılımı')
+        # SHAP özet grafiği
+        plt.figure(figsize=(12, 8))
+        shap.summary_plot(shap_values, X_train_df, show=False)
+        plt.title(f"{name} - SHAP Özet Grafiği", fontsize=16)
         plt.tight_layout()
         plt.savefig(f'shap_summary_{name.replace(" ", "_").lower()}.png', dpi=300, bbox_inches='tight')
         plt.close()
         
-        # İlk 5 örnek için kuvvet grafiği
-        for i in range(min(5, sample_size)):
-            plt.figure(figsize=(15, 5))
-            shap.force_plot(explainer.expected_value, shap_values[i], X_test_df.iloc[i], 
-                          matplotlib=True, show=False)
-            plt.title(f'{name} Model SHAP Kuvvet Grafiği - Örnek {i+1}')
-            plt.tight_layout()
-            plt.savefig(f'shap_force_plot_{name.replace(" ", "_").lower()}_sample_{i}.png', dpi=300, bbox_inches='tight')
-            plt.close()
-        
-        print(f"{name} için SHAP grafikleri oluşturuldu.")
+        # Birkaç test örneği için karar değişim grafikleri
+        try:
+            # İlk 3 test örneği için SHAP açıklaması
+            for i in range(min(3, len(X_test_df))):
+                plt.figure(figsize=(12, 6))
+                # Decision plot (daha basit ve daha az hata olasılığı var)
+                shap.decision_plot(explainer.expected_value, shap_values.values[:1], X_train_df.iloc[:1], show=False)
+                plt.title(f"{name} - Örnek {i+1} SHAP Karar Grafiği", fontsize=14)
+                plt.tight_layout()
+                plt.savefig(f'shap_decision_{name.replace(" ", "_").lower()}_{i+1}.png', dpi=300, bbox_inches='tight')
+                plt.close()
+        except Exception as e:
+            print(f"Karar grafiği oluşturulurken hata: {e}")
+            print("SHAP karar grafiği atlanıyor...")
 
 def plot_pdp(models, X_train, feature_names, numerical_features_idx):
-    """Partial Dependence Plot (PDP) grafiklerini oluşturur"""
-    for name, model in models.items():
-        print(f"\n{name} için PDP grafikleri oluşturuluyor...")
+    """
+    Kısmi Bağımlılık Grafikleri (PDP) çizerek modellerin 
+    her bir özelliğe nasıl tepki verdiğini görselleştirir
+    """
+    try:
+        n_features = len(numerical_features_idx)
         
-        # En önemli 5 sayısal özellik için PDP'ler
-        if hasattr(model, 'feature_importances_'):
-            # Sayısal özelliklerin önem sıralaması
-            importances = model.feature_importances_[numerical_features_idx]
-            indices = np.argsort(importances)[::-1]
+        plt.figure(figsize=(15, n_features * 5))
+        
+        # Her sayısal özellik için
+        for i, idx in enumerate(numerical_features_idx):
+            feature_name = feature_names[idx]
             
-            # En önemli 5 sayısal özellik
-            top_features = [numerical_features_idx[i] for i in indices[:5]]
+            plt.subplot(n_features, 1, i+1)
             
-            # PDP grafiklerini oluştur
-            fig, ax = plt.subplots(figsize=(12, 10))
-            plot_partial_dependence(model, X_train, top_features, feature_names=feature_names,
-                                   ax=ax, line_kw={"color": "red"})
-            fig.suptitle(f'{name} Kısmi Bağımlılık Grafikleri', fontsize=16)
-            plt.tight_layout(rect=[0, 0, 1, 0.97])
-            plt.savefig(f'pdp_{name.replace(" ", "_").lower()}.png', dpi=300, bbox_inches='tight')
-            plt.close()
+            # Her model için
+            for model_name, model in models.items():
+                try:
+                    # Kısmi bağımlılık hesapla
+                    pdp_result = partial_dependence(
+                        model, X_train, [idx], 
+                        kind="average", grid_resolution=50
+                    )
+                    
+                    # Sonuçları çiz - yeni API formatına göre
+                    if "values" in pdp_result:
+                        # Eski format
+                        feature_values = pdp_result["values"][0]
+                        pdp_values = pdp_result["average"][0]
+                    else:
+                        # Yeni format
+                        feature_values = pdp_result["grid_values"][0]
+                        pdp_values = pdp_result["average_dependence"][0]
+                    
+                    plt.plot(feature_values, pdp_values, 
+                            label=f'{model_name}', 
+                            linewidth=2, 
+                            marker='o',
+                            markersize=4)
+                
+                except Exception as e:
+                    print(f"PDP oluşturulurken hata ({model_name}, {feature_name}): {e}")
+                    continue
             
-            # İkili PDP etkileşimler (ilk iki önemli özellik)
-            if len(top_features) >= 2:
-                fig, ax = plt.subplots(figsize=(10, 8))
-                plot_partial_dependence(model, X_train, [top_features[:2]], feature_names=feature_names,
-                                      kind='both', ax=ax, contour_kw={"cmap": "viridis"})
-                fig.suptitle(f'{name} İkili Kısmi Bağımlılık Etkileşimi', fontsize=16)
-                plt.tight_layout(rect=[0, 0, 1, 0.97])
-                plt.savefig(f'pdp_interaction_{name.replace(" ", "_").lower()}.png', dpi=300, bbox_inches='tight')
-                plt.close()
-            
-            print(f"{name} için PDP grafikleri oluşturuldu.")
+            plt.title(f'{feature_name} için Kısmi Bağımlılık', fontsize=14)
+            plt.xlabel(feature_name, fontsize=12)
+            plt.ylabel('Arıza Olasılığı', fontsize=12)
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig('pdp_plots.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        print("Kısmi bağımlılık grafikleri kaydedildi: pdp_plots.png")
+    
+    except Exception as e:
+        print(f"Kısmi bağımlılık grafikleri oluşturulurken hata: {e}")
 
 def main():
     """Ana fonksiyon"""
-    # Veriyi yükle
+    print("Endüstriyel Bakım Model Yorumlanabilirlik Uygulaması")
+    
+    # Veri setini yükle
     df = load_maintenance_data()
     
     if df is not None:
         # Veriyi hazırla
-        X_train, X_test, X_train_processed, X_test_processed, X_train_df, X_test_df, y_train, y_test, preprocessor = prepare_data(df)
-        
-        # Orijinal özelliklerin adlarını al
-        original_features = list(X_train.columns)
-        
-        # İşlenmiş özelliklerin adlarını al
-        one_hot_encoder = preprocessor.named_transformers_['cat']
-        cat_feature_names = one_hot_encoder.get_feature_names_out(['Type'])
-        processed_feature_names = list(X_train.columns[:-1]) + list(cat_feature_names)
-        
-        # Sayısal özelliklerin indekslerini belirle
-        numerical_features_idx = list(range(len(X_train.columns[:-1])))
+        data = prepare_data(df)
+        (X_train, X_train_processed, X_train_df, X_test, X_test_processed, X_test_df, 
+         y_train, y_test, feature_names, numerical_features_idx) = data
         
         # Modelleri eğit
-        print("Modeller eğitiliyor...")
         models = train_models(X_train_processed, y_train)
         
         # Modelleri değerlendir
-        print("\nModeller değerlendiriliyor...")
         results = evaluate_models(models, X_test_processed, y_test)
         
-        # Karmaşıklık matrislerini görselleştir
-        print("\nKarmaşıklık matrisleri oluşturuluyor...")
+        # Karmaşıklık matrisleri
         plot_confusion_matrices(models, X_test_processed, y_test)
         
-        # Özellik önem derecelerini görselleştir
-        print("\nÖzellik önem dereceleri görselleştiriliyor...")
-        plot_feature_importance(models, X_train_processed, processed_feature_names)
+        # Özellik önem dereceleri
+        plot_feature_importance(models, X_train, feature_names)
         
-        # SHAP değerlerini görselleştir
-        print("\nSHAP değerleri görselleştiriliyor...")
+        # SHAP değerleri
         plot_shap_values(models, X_train_df, X_test_df)
         
-        # PDP grafiklerini görselleştir
-        print("\nPDP grafikleri oluşturuluyor...")
-        plot_pdp(models, X_train_processed, processed_feature_names, numerical_features_idx)
+        # PDP grafikleri
+        plot_pdp(models, X_train, feature_names, numerical_features_idx)
         
-        print("\nTüm görselleştirmeler tamamlandı!")
+        print("\nTüm model yorumlama grafikleri oluşturuldu!")
+        
     else:
-        print("Veri yüklenemediği için işlem yapılamadı.")
+        print("Veri yüklenemediği için analizler yapılamadı.")
 
 if __name__ == "__main__":
-    main() 
+    main()
