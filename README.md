@@ -129,7 +129,7 @@ Bu proje [MIT Lisansı](LICENSE) altında dağıtılmaktadır.
 
 ## 📧 İletişim
 
-Sorularınız ve önerileriniz için: [email@ornek.com](mailto:email@ornek.com)
+Sorularınız ve önerileriniz için: [emrecakmak@me.com](mailto:emrecakmak@me.com)
 
 ---
 
