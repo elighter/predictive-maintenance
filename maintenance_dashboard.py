@@ -41,45 +41,230 @@ st.set_page_config(
 # Style definitions
 st.markdown("""
 <style>
+    /* Global styles to override Streamlit's defaults */
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    
+    /* Modify Streamlit widgets background */
+    .stTextInput > div > div {
+        background-color: #262730;
+    }
+    
+    .stSelectbox > div > div {
+        background-color: #262730;
+    }
+    
+    .stMultiSelect > div > div {
+        background-color: #262730;
+    }
+    
+    /* Main header */
     .main-header {
-        font-size: 2.5rem;
-        color: #3498db;
+        font-size: 2.8rem;
+        color: #ffffff;
         text-align: center;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        font-weight: 800;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        padding: 15px;
+        border-radius: 10px;
+        background-color: rgba(25, 39, 52, 0.8);
+        border-bottom: 3px solid #4e73df;
     }
+    
+    /* Sub-headers */
     .sub-header {
-        font-size: 1.5rem;
-        color: #2980b9;
-        margin-bottom: 1rem;
+        font-size: 1.8rem;
+        color: #ffffff;
+        margin-bottom: 1.2rem;
+        font-weight: 700;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        padding: 10px;
+        border-radius: 8px;
+        background-color: rgba(25, 39, 52, 0.8);
+        border-left: 5px solid #4e73df;
     }
+    
+    /* Info boxes */
     .info-box {
         padding: 1rem;
         border-radius: 0.5rem;
-        background-color: #f8f9fa;
+        background-color: rgba(25, 39, 52, 0.8);
         border-left: 0.5rem solid #3498db;
         margin-bottom: 1rem;
+        color: #ffffff;
     }
+    
+    /* Metric cards */
     .stMetric {
-        background-color: #f1f8fe;
+        background-color: rgba(25, 39, 52, 0.8) !important;
         padding: 10px;
         border-radius: 5px;
-        border: 1px solid #cfe5fd;
+        border: 1px solid rgba(78, 115, 223, 0.5);
+        color: #ffffff !important;
     }
+    
+    /* Metric labels */
+    div[data-testid="stMetricLabel"] {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Metric values */
+    div[data-testid="stMetricValue"] {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Tab sub-headers */
+    .tab-subheader {
+        font-size: 1.4rem;
+        color: #ffffff;
+        margin-top: 1.2rem;
+        margin-bottom: 1.2rem;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        padding: 8px;
+        border-radius: 6px;
+        background-color: rgba(25, 39, 52, 0.8);
+        border-left: 4px solid #4e73df;
+    }
+    
+    /* Tab styles */
+    button[data-baseweb="tab"] {
+        color: #ffffff !important;
+        font-weight: 600;
+        background-color: rgba(25, 39, 52, 0.6);
+        border-radius: 5px 5px 0 0;
+        padding: 5px 15px !important;
+    }
+    
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #ffffff !important;
+        background-color: rgba(78, 115, 223, 0.5);
+        border-bottom: 3px solid #4e73df;
+    }
+    
+    /* Chart containers */
+    .stPlotlyChart {
+        background-color: rgba(25, 39, 52, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        margin-bottom: 20px !important;
+        border: 1px solid rgba(78, 115, 223, 0.3);
+    }
+    
+    /* DataTable styling */
+    .dataframe-container {
+        background-color: rgba(25, 39, 52, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        border: 1px solid rgba(78, 115, 223, 0.3);
+    }
+    
+    .dataframe {
+        color: #ffffff !important;
+    }
+    
+    /* Footer */
     .footer {
         text-align: center;
         margin-top: 2rem;
         padding: 1rem;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid #2c3e50;
         font-size: 0.8rem;
+        color: #cccccc;
+        background-color: rgba(25, 39, 52, 0.5);
+        border-radius: 0 0 10px 10px;
     }
-    .tab-subheader {
-        font-size: 1.2rem;
-        color: #34495e;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
+    
+    /* Streamlit sidebar */
+    .css-sidebar {
+        background-color: #192734 !important;
+    }
+    
+    /* Sidebar headers */
+    .css-sidebar .css-header {
+        background-color: #192734 !important;
+    }
+    
+    /* Dataframes and tables */
+    .stDataFrame {
+        background-color: rgba(25, 39, 52, 0.7) !important;
+    }
+    
+    div[data-testid="stTable"] {
+        background-color: rgba(25, 39, 52, 0.7) !important;
+    }
+    
+    /* Table cells */
+    div[data-testid="stTable"] th {
+        background-color: rgba(37, 51, 74, 0.7) !important;
+        color: white !important;
+    }
+    
+    div[data-testid="stTable"] td {
+        background-color: rgba(25, 39, 52, 0.5) !important;
+        color: white !important;
+    }
+    
+    /* Disable Streamlit default background */
+    .css-18e3th9 {
+        background-color: transparent !important;
+    }
+    
+    .css-1d391kg {
+        background-color: #192734 !important;
+    }
+    
+    /* Text and headers */
+    p, h1, h2, h3, h4, h5, h6, li {
+        color: #ffffff !important;
+    }
+    
+    /* Success/Error/Warning/Info boxes */
+    div.stAlert > div {
+        background-color: rgba(25, 39, 52, 0.7) !important;
+        color: white !important;
+    }
+    
+    /* Success box */
+    div.stAlert.success > div {
+        border-left-color: #2ECC71 !important;
+    }
+    
+    /* Warning box */
+    div.stAlert.warning > div {
+        border-left-color: #F1C40F !important;
+    }
+    
+    /* Error box */
+    div.stAlert.error > div {
+        border-left-color: #E74C3C !important;
+    }
+    
+    /* Info box */
+    div.stAlert.info > div {
+        border-left-color: #3498DB !important;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Modify all Plotly charts to use dark theme by default
+layout_template = dict(
+    layout=dict(
+        paper_bgcolor='rgba(25, 39, 52, 0.7)',
+        plot_bgcolor='rgba(25, 39, 52, 0.7)',
+        font=dict(color='white'),
+        xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        margin=dict(l=40, r=40, t=50, b=40)
+    )
+)
 
 @st.cache_data
 def load_data():
@@ -116,7 +301,7 @@ def prepare_data(df):
     return X, y, X_train, X_test, y_train, y_test, preprocessor, numerical_features, categorical_features
 
 @st.cache_resource
-def train_model(X_train, y_train, preprocessor, model_name="Random Forest"):
+def train_model(X_train, y_train, _preprocessor, model_name="Random Forest"):
     """Train the selected model"""
     # Create pipeline
     if model_name == "Random Forest":
@@ -128,7 +313,7 @@ def train_model(X_train, y_train, preprocessor, model_name="Random Forest"):
     
     # Create the pipeline
     pipeline = Pipeline([
-        ('preprocessor', preprocessor),
+        ('preprocessor', _preprocessor),
         ('classifier', model)
     ])
     
@@ -179,6 +364,14 @@ def plot_failure_distribution(df):
     fig.update_traces(textposition='inside', textinfo='percent+label', 
                      textfont_size=14, pull=[0, 0.1])
     
+    # Apply dark theme
+    fig.update_layout(
+        paper_bgcolor='rgba(25, 39, 52, 0.7)',
+        plot_bgcolor='rgba(25, 39, 52, 0.7)',
+        font=dict(color='white'),
+        margin=dict(t=60, b=40, l=40, r=40)
+    )
+    
     return fig
 
 def plot_failure_types(df):
@@ -215,7 +408,14 @@ def plot_failure_types(df):
         yaxis_title_font_size=16,
         height=600,
         width=800,
-        showlegend=False
+        showlegend=False,
+        # Dark theme
+        paper_bgcolor='rgba(25, 39, 52, 0.7)',
+        plot_bgcolor='rgba(25, 39, 52, 0.7)',
+        font=dict(color='white'),
+        xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        margin=dict(l=40, r=40, t=50, b=40)
     )
     
     return fig
@@ -247,6 +447,16 @@ def plot_failure_by_type(df):
     
     fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
     
+    # Dark theme
+    fig.update_layout(
+        paper_bgcolor='rgba(25, 39, 52, 0.7)',
+        plot_bgcolor='rgba(25, 39, 52, 0.7)',
+        font=dict(color='white'),
+        xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        margin=dict(l=40, r=40, t=50, b=40)
+    )
+    
     return fig
 
 def plot_correlation_heatmap(df):
@@ -265,6 +475,14 @@ def plot_correlation_heatmap(df):
         text_auto=True,
         color_continuous_scale='Blues',
         title='Correlation Matrix Between Variables'
+    )
+    
+    # Dark theme
+    fig.update_layout(
+        paper_bgcolor='rgba(25, 39, 52, 0.7)',
+        plot_bgcolor='rgba(25, 39, 52, 0.7)',
+        font=dict(color='white'),
+        margin=dict(l=40, r=40, t=50, b=40)
     )
     
     return fig
@@ -288,11 +506,28 @@ def plot_3d_sensor_space(df):
         }
     )
     
+    # Dark theme
+    fig.update_layout(
+        paper_bgcolor='rgba(25, 39, 52, 0.7)',
+        plot_bgcolor='rgba(25, 39, 52, 0.7)',
+        font=dict(color='white'),
+        scene=dict(
+            xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)', backgroundcolor='rgba(25, 39, 52, 0.7)'),
+            yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)', backgroundcolor='rgba(25, 39, 52, 0.7)'),
+            zaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)', backgroundcolor='rgba(25, 39, 52, 0.7)')
+        ),
+        margin=dict(l=40, r=40, t=50, b=40)
+    )
+    
     return fig
 
 def plot_confusion_matrix(cm):
     """Confusion matrix visualization"""
     fig, ax = plt.subplots(figsize=(6, 5))
+    # Set the figure background to dark
+    fig.patch.set_facecolor('#192734')
+    ax.set_facecolor('#192734')
+    
     sns.heatmap(
         cm, 
         annot=True, 
@@ -301,25 +536,46 @@ def plot_confusion_matrix(cm):
         ax=ax,
         cbar=True
     )
-    ax.set_xlabel('Predicted')
-    ax.set_ylabel('Actual')
-    ax.set_title('Confusion Matrix')
-    ax.set_xticklabels(['Normal', 'Failure'])
-    ax.set_yticklabels(['Normal', 'Failure'])
+    ax.set_xlabel('Predicted', color='white')
+    ax.set_ylabel('Actual', color='white')
+    ax.set_title('Confusion Matrix', color='white')
+    ax.set_xticklabels(['Normal', 'Failure'], color='white')
+    ax.set_yticklabels(['Normal', 'Failure'], color='white')
+    ax.tick_params(colors='white')
+    
+    # Set the color of the outline
+    for spine in ax.spines.values():
+        spine.set_edgecolor('white')
     
     return fig
 
 def plot_roc_curve(fpr, tpr, roc_auc):
     """ROC curve visualization"""
     fig, ax = plt.subplots(figsize=(6, 5))
-    ax.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
+    # Set the figure background to dark
+    fig.patch.set_facecolor('#192734')
+    ax.set_facecolor('#192734')
+    
+    ax.plot(fpr, tpr, color='#4e73df', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
     ax.plot([0, 1], [0, 1], color='gray', lw=1, linestyle='--')
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('ROC Curve')
+    ax.set_xlabel('False Positive Rate', color='white')
+    ax.set_ylabel('True Positive Rate', color='white')
+    ax.set_title('ROC Curve', color='white')
     ax.legend(loc="lower right")
+    
+    # Set the color of text in the legend
+    legend = ax.get_legend()
+    for text in legend.get_texts():
+        text.set_color('white')
+    
+    # Set the tick colors
+    ax.tick_params(colors='white')
+    
+    # Set the color of the outline
+    for spine in ax.spines.values():
+        spine.set_edgecolor('white')
     
     return fig
 
@@ -336,6 +592,16 @@ def plot_sensor_data_by_failure(df, sensor_name):
     )
     
     fig.update_layout(bargap=0.1)
+    
+    # Dark theme
+    fig.update_layout(
+        paper_bgcolor='rgba(25, 39, 52, 0.7)',
+        plot_bgcolor='rgba(25, 39, 52, 0.7)',
+        font=dict(color='white'),
+        xaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        yaxis=dict(gridcolor='rgba(255, 255, 255, 0.1)', zerolinecolor='rgba(255, 255, 255, 0.1)'),
+        margin=dict(l=40, r=40, t=50, b=40)
+    )
     
     return fig
 
@@ -448,11 +714,15 @@ def main():
             
             # Data samples
             st.markdown('<h3 class="tab-subheader">Data Samples</h3>', unsafe_allow_html=True)
+            st.markdown('<div class="dataframe-container">', unsafe_allow_html=True)
             st.dataframe(filtered_df.head(10), use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # Statistical summary
             st.markdown('<h3 class="tab-subheader">Statistical Summary</h3>', unsafe_allow_html=True)
+            st.markdown('<div class="dataframe-container">', unsafe_allow_html=True)
             st.dataframe(filtered_df.describe().T, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # Visualizations
             st.markdown('<h3 class="tab-subheader">Visualizations</h3>', unsafe_allow_html=True)
@@ -541,9 +811,22 @@ def main():
                         
                         # Bar plot
                         fig, ax = plt.subplots(figsize=(10, 6))
-                        sns.barplot(x=importances[indices], y=[feature_names[i] for i in indices], ax=ax)
-                        ax.set_title('Feature Importance')
-                        ax.set_xlabel('Importance')
+                        # Set dark background
+                        fig.patch.set_facecolor('#192734')
+                        ax.set_facecolor('#192734')
+                        
+                        sns.barplot(x=importances[indices], y=[feature_names[i] for i in indices], ax=ax, palette='Blues_r')
+                        ax.set_title('Feature Importance', color='white', fontsize=14)
+                        ax.set_xlabel('Importance', color='white', fontsize=12)
+                        ax.set_ylabel('Features', color='white', fontsize=12)
+                        
+                        # Set the tick colors
+                        ax.tick_params(colors='white')
+                        
+                        # Set the color of the outline
+                        for spine in ax.spines.values():
+                            spine.set_edgecolor('white')
+                            
                         st.pyplot(fig)
                     else:
                         st.info("Feature importance is not available for the selected model.")
@@ -616,13 +899,13 @@ def main():
                         mode = "gauge+number",
                         value = prediction_proba * 100,
                         domain = {'x': [0, 1], 'y': [0, 1]},
-                        title = {'text': "Failure Probability (%)", 'font': {'size': 24}},
+                        title = {'text': "Failure Probability (%)", 'font': {'size': 24, 'color': 'white'}},
                         gauge = {
-                            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
-                            'bar': {'color': "darkblue"},
-                            'bgcolor': "white",
+                            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "white", 'tickfont': {'color': 'white'}},
+                            'bar': {'color': "#4e73df"},
+                            'bgcolor': "rgba(25, 39, 52, 0.5)",
                             'borderwidth': 2,
-                            'bordercolor': "gray",
+                            'bordercolor': "#2c3e50",
                             'steps': [
                                 {'range': [0, 25], 'color': '#2ECC71'},
                                 {'range': [25, 50], 'color': '#F1C40F'},
@@ -636,6 +919,13 @@ def main():
                             }
                         }
                     ))
+                    
+                    fig.update_layout(
+                        paper_bgcolor = 'rgba(25, 39, 52, 0.8)',
+                        plot_bgcolor = 'rgba(25, 39, 52, 0.8)',
+                        font = {'color': 'white'},
+                        margin = dict(t=30, b=30, l=30, r=30)
+                    )
                     
                     st.plotly_chart(fig, use_container_width=True)
                     
