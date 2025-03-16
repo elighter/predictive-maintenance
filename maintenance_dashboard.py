@@ -576,7 +576,7 @@ def plot_roc_curve(fpr, tpr, roc_auc):
     # Set the color of the outline
     for spine in ax.spines.values():
         spine.set_edgecolor('white')
-    
+        
     return fig
 
 def plot_sensor_data_by_failure(df, sensor_name):
@@ -926,7 +926,7 @@ def main():
                         font = {'color': 'white'},
                         margin = dict(t=30, b=30, l=30, r=30)
                     )
-                    
+                        
                     st.plotly_chart(fig, use_container_width=True)
                     
                     # Recommendations
@@ -960,17 +960,14 @@ def main():
                         - Normal operating conditions can be maintained
                         - Follow routine maintenance schedule
                         - Record sensor data regularly
-                        """)
-            else:
-                st.info("Adjust the values in the left panel and click 'Make Failure Prediction' to make a prediction.")
-        
-        # Footer
-        st.markdown('<div class="footer">', unsafe_allow_html=True)
-        st.markdown("Industrial Maintenance Prediction Project © 2024")
-        st.markdown('</div>', unsafe_allow_html=True)
-    
+            """)
     else:
-        st.error("Data could not be loaded! Please check the file path.")
+        st.info("Adjust the values in the left panel and click 'Make Failure Prediction' to make a prediction.")
+    
+    # Footer
+    st.markdown('<div class="footer">', unsafe_allow_html=True)
+    st.markdown("Industrial Maintenance Prediction Project © 2024")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    main()
+    main() 
