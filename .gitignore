@@ -1,46 +1,42 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Virtual Environment
-venv/
-env/
-ENV/
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Streamlit
-.streamlit/
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# VS Code
+# VS Code settings
 .vscode/
 
 # PyCharm
 .idea/
 
-# Mac
-.DS_Store
+# Data files
+data/predictive_maintenance.csv
 
-# Project specific
-*.html
+# Generated output files
 *.png
-*.log 
+*.html
+*.csv
+
+# Streamlit
+.streamlit/
+
+# OS specific
+.DS_Store
+Thumbs.db

@@ -11,21 +11,43 @@ Proje aşağıdaki ana bileşenleri içermektedir:
 3. **Streamlit Dashboard** (`maintenance_dashboard.py`): Tam kapsamlı, kullanıcı dostu analiz panosu
 4. **Örnek Proje** (`sample-project.py`): Temel makine öğrenmesi iş akışını gösteren ana uygulama
 
-## 🚀 Kurulum
+## 🚀 Kurulum ve Çalıştırma
 
-Projeyi çalıştırmak için aşağıdaki kütüphaneleri kurmanız gerekmektedir:
+Projeyi çalıştırmak için aşağıdaki adımları izleyin:
+
+### 1. Gerekli Kütüphaneleri Kurma
+
+Projeyi çalıştırmak için gerekli kütüphaneleri kurun:
 
 ```bash
-pip install pandas numpy matplotlib seaborn scikit-learn plotly streamlit kagglehub shap
+pip install -r requirements.txt
 ```
 
-### Veri Seti
+### 2. Veri Setini İndirme
 
-Bu projede kullanılan veri seti, [Kaggle'dan Machine Predictive Maintenance Classification](https://www.kaggle.com/datasets/shivamb/machine-predictive-maintenance-classification) veri setidir. Veri seti otomatik olarak `kagglehub` kütüphanesi aracılığıyla indirilecektir.
+Bu projede kullanılan veri seti, [Kaggle'dan Machine Predictive Maintenance Classification](https://www.kaggle.com/datasets/shivamb/machine-predictive-maintenance-classification) veri setidir.
 
-## 🛠️ Kullanım
+Veri setini indirmek için iki yöntem bulunmaktadır:
 
-### 1. İnteraktif Görselleştirmeler
+#### a) Doğrudan İndirme
+Aşağıdaki komutu kullanarak veri setini doğrudan indirebilirsiniz:
+
+```bash
+mkdir -p data
+curl -L -o ~/Downloads/machine-predictive-maintenance-classification.zip \
+  https://www.kaggle.com/api/v1/datasets/download/shivamb/machine-predictive-maintenance-classification
+unzip ~/Downloads/machine-predictive-maintenance-classification.zip -d ./data
+```
+
+#### b) Manuel İndirme
+1. [Kaggle veri seti sayfasına](https://www.kaggle.com/datasets/shivamb/machine-predictive-maintenance-classification) gidin
+2. "Download" butonuna tıklayarak veri setini indirin
+3. İndirilen ZIP dosyasını açın
+4. CSV dosyasını projenin kök dizininde `data` klasörüne kopyalayın (gerekirse `data` klasörünü oluşturun)
+
+### 3. Proje Bileşenlerini Çalıştırma
+
+### a) İnteraktif Görselleştirmeler
 
 İnteraktif Plotly grafiklerini oluşturmak ve HTML dosyaları olarak kaydetmek için:
 
@@ -42,7 +64,7 @@ Bu komut aşağıdaki HTML dosyalarını oluşturacaktır:
 - `sensor_dagilimi.html`: Sensör değerlerinin arıza durumuna göre dağılımı
 - `sicaklik_tork_animasyon.html`: Alet aşınmasına göre animasyonlu değişim grafiği
 
-### 2. Model Yorumlanabilirliği
+### b) Model Yorumlanabilirliği
 
 SHAP ve PDP grafikleri oluşturmak için:
 
@@ -55,10 +77,10 @@ Bu komut PNG formatında çeşitli model yorumlama grafikleri oluşturacaktır:
 - Özellik önem dereceleri
 - SHAP önem grafikleri
 - SHAP özet grafikleri
-- SHAP kuvvet grafikleri
+- SHAP karar grafikleri
 - Kısmi bağımlılık grafikleri
 
-### 3. Streamlit Dashboard
+### c) Streamlit Dashboard
 
 İnteraktif dashboard'u çalıştırmak için:
 
@@ -71,14 +93,6 @@ Bu komut, aşağıdaki özelliklere sahip bir web uygulaması başlatacaktır:
 - Dinamik filtreler
 - Model eğitimi ve değerlendirmesi
 - Sensör değerlerine göre arıza tahmini simülasyonu
-
-### 4. Temel Örnek Proje
-
-Örnekleme projesi, temel iş akışını görmek için:
-
-```bash
-python sample-project.py
-```
 
 ## 📊 Özellikler
 
@@ -95,7 +109,7 @@ python sample-project.py
 
 ### Model Yorumlanabilirliği
 - SHAP değerleri ile özellik önemleri
-- SHAP kuvvet grafikleri ile bireysel tahmin açıklamaları
+- SHAP özet grafikleri ile bireysel tahmin açıklamaları
 - Kısmi bağımlılık grafikleri (PDP) ile özellik etkileri
 
 ### Dashboard
@@ -113,6 +127,13 @@ Bu proje, endüstriyel makineler için prediktif bakım stratejilerinin gelişti
 - Sıcaklık farkı ve dönüş hızı kritik izleme parametreleridir
 - Veriye dayalı bakım kararları sayesinde kaynaklar daha verimli kullanılabilir
 
+## 💻 Sistem Gereksinimleri
+
+- Python 3.7 veya üzeri
+- 4GB RAM (minimum)
+- Streamlit dashboard için modern bir web tarayıcısı (Chrome, Firefox, Edge vb.)
+- İşletim Sistemi: Windows, MacOS veya Linux
+
 ## 🧰 Geliştirme
 
 Projeye katkıda bulunmak için:
@@ -129,7 +150,7 @@ Bu proje [MIT Lisansı](LICENSE) altında dağıtılmaktadır.
 
 ## 📧 İletişim
 
-Sorularınız ve önerileriniz için: [email@ornek.com](mailto:email@ornek.com)
+Sorularınız ve önerileriniz için: emrecakmak@me.com
 
 ---
 
@@ -138,4 +159,4 @@ Sorularınız ve önerileriniz için: [email@ornek.com](mailto:email@ornek.com)
 1. Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011.
 2. SHAP: A Game Theoretic Approach to Explain the Output of any Machine Learning Model, Lundberg & Lee, NIPS 2017.
 3. Kaggle Dataset: "Machine Predictive Maintenance Classification", Shivam Bansal, 2022.
-4. McKinsey & Company. "Predictive maintenance: Taking proactive measures based on advanced data analytics to predict and avoid machine failure." 
+4. McKinsey & Company. "Predictive maintenance: Taking proactive measures based on advanced data analytics to predict and avoid machine failure."
