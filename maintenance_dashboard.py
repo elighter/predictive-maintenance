@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Makine Öğrenmesi ile Endüstriyel Bakım Tahmin Projesi 
-Streamlit Dashboard Uygulaması
+Industrial Maintenance Prediction Project using Machine Learning
+Streamlit Dashboard Application
 
-Bu modül, makine bakımı veri setini analiz etmek ve 
-prediktif model sonuçlarını görselleştirmek için Streamlit kullanarak
-interaktif bir analiz panosu sunar.
+This module provides an interactive analysis dashboard using Streamlit
+to analyze machine maintenance datasets and visualize predictive model results.
 """
 
 import streamlit as st
@@ -21,7 +20,7 @@ from plotly.subplots import make_subplots
 # import kagglehub
 # from kagglehub import KaggleDatasetAdapter
 
-# Makine öğrenmesi kütüphaneleri
+# Machine learning libraries
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -30,18 +29,18 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
 
-# Sayfa yapılandırması
+# Page configuration
 st.set_page_config(
-    page_title="Prediktif Bakım Analiz Panosu",
+    page_title="Predictive Maintenance Dashboard",
     page_icon="🔧",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Stil tanımlamaları
+# Style definitions
 st.markdown("""
 <style>
-    /* Ana başlıklar */
+    /* Main headers */
     .main-header {
         font-size: 2.8rem;
         color: #ffffff;
@@ -54,7 +53,7 @@ st.markdown("""
         border-bottom: 3px solid #4e73df;
     }
     
-    /* Alt başlıklar */
+    /* Sub headers */
     .sub-header {
         font-size: 1.8rem;
         color: #ffffff;
@@ -66,7 +65,7 @@ st.markdown("""
         border-left: 5px solid #4e73df;
     }
     
-    /* Bilgi kutusu */
+    /* Info box */
     .info-box {
         padding: 1rem;
         border-radius: 0.5rem;
@@ -77,7 +76,7 @@ st.markdown("""
         font-weight: 500;
     }
     
-    /* Metrik kartları */
+    /* Metric cards */
     .stMetric {
         background-color: rgba(25, 39, 52, 0.8);
         padding: 10px;
@@ -86,19 +85,19 @@ st.markdown("""
         color: #ffffff;
     }
     
-    /* Metrik kartlarındaki label */
+    /* Metric card labels */
     div[data-testid="stMetricLabel"] {
         color: #ffffff !important;
         font-weight: 600;
     }
     
-    /* Metrik kartlarındaki değer */
+    /* Metric card values */
     div[data-testid="stMetricValue"] {
         color: #ffffff !important;
         font-size: 1.5rem !important;
     }
     
-    /* Alt sayfa başlıkları */
+    /* Tab sub headers */
     .tab-subheader {
         font-size: 1.4rem;
         color: #ffffff;
@@ -111,7 +110,7 @@ st.markdown("""
         border-left: 4px solid #4e73df;
     }
     
-    /* Sekme stilleri */
+    /* Tab styles */
     button[data-baseweb="tab"] {
         color: #ffffff !important;
         font-weight: 600;
@@ -126,7 +125,7 @@ st.markdown("""
         border-bottom: 3px solid #4e73df;
     }
     
-    /* Grafik kartları */
+    /* Chart cards */
     .stPlotlyChart {
         background-color: rgba(25, 39, 52, 0.7);
         padding: 15px;
@@ -136,7 +135,7 @@ st.markdown("""
         border: 1px solid rgba(78, 115, 223, 0.3);
     }
     
-    /* Tablo stilleri */
+    /* Table styles */
     .dataframe-container {
         background-color: rgba(25, 39, 52, 0.7);
         padding: 15px;
@@ -153,24 +152,24 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* Yan panel başlıkları */
+    /* Sidebar headers */
     div[data-testid="stSidebar"] h1, div[data-testid="stSidebar"] h2, div[data-testid="stSidebar"] h3 {
         color: #ffffff !important;
         font-weight: 700;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
     
-    /* Yan panel metin elemanları */
+    /* Sidebar text elements */
     div[data-testid="stSidebar"] div[data-testid="stText"] {
         color: #ffffff !important;
     }
     
-    /* Kontrol paneli stileri */
+    /* Control panel styles */
     .sidebar .sidebar-content {
         background-color: rgba(25, 39, 52, 0.9);
     }
     
-    /* Metin renkleri */
+    /* Text colors */
     p, label, li {
         color: #ffffff !important;
     }
@@ -185,7 +184,7 @@ st.markdown("""
         color: #ffffff;
     }
     
-    /* Streamlit öğeleri düzenlemeleri */
+    /* Streamlit element adjustments */
     div[data-testid="stVerticalBlock"] {
         background-color: transparent !important;
     }
@@ -194,12 +193,12 @@ st.markdown("""
         background-color: transparent !important;
     }
     
-    /* Tüm renk düzenlemeleri */
+    /* All color adjustments */
     .main .block-container {
         background-color: transparent !important;
     }
     
-    /* Tablo arka plan renkleri */
+    /* Table background colors */
     div[data-testid="stTable"] th {
         background-color: rgba(25, 39, 52, 0.9) !important;
         color: white !important;
@@ -210,12 +209,12 @@ st.markdown("""
         color: white !important;
     }
     
-    /* İçerik kutuları */
+    /* Content boxes */
     .element-container {
         background-color: transparent !important;
     }
     
-    /* Streamlit formları */
+    /* Streamlit forms */
     .stForm {
         background-color: rgba(25, 39, 52, 0.7) !important;
         padding: 15px;
@@ -227,96 +226,96 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    """Bakım veri setini yerel dosyadan yükler ve cache'ler"""
+    """Loads and caches the maintenance dataset from local file"""
     try:
         file_path = "data/predictive_maintenance.csv"
         df = pd.read_csv(file_path)
         return df
     except Exception as e:
-        st.error(f"Veri yüklenirken hata: {e}")
+        st.error(f"Error loading data: {e}")
         return None
 
 @st.cache_data
 def prepare_data(df):
-    """Veriyi işler ve önişleme yapar"""
-    # Hedef değişkeni ve özellikleri ayır
+    """Processes and prepares data for model training"""
+    # Split target variable and features
     X = df.drop(['UDI', 'Product ID', 'Target', 'Failure Type'], axis=1)
     y = df['Target']
     
-    # Kategorik ve sayısal değişkenleri ayır
+    # Separate categorical and numerical variables
     categorical_features = ['Type']
     numerical_features = [col for col in X.columns if col not in categorical_features]
     
-    # Veri ön işleme pipeline'ı
+    # Data preprocessing pipeline
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', StandardScaler(), numerical_features),
             ('cat', OneHotEncoder(drop='first'), categorical_features)
         ])
     
-    # Veriyi eğitim ve test setlerine ayır
+    # Split data into train and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
     return X, y, X_train, X_test, y_train, y_test, preprocessor, numerical_features, categorical_features
 
 @st.cache_resource
 def train_model(X_train, y_train, preprocessor, model_name="Random Forest"):
-    """Seçilen modeli eğit"""
-    # Pipeline oluştur
+    """Train the selected model"""
+    # Create pipeline
     if model_name == "Random Forest":
         model = RandomForestClassifier(n_estimators=100, random_state=42)
     elif model_name == "Gradient Boosting":
         model = GradientBoostingClassifier(n_estimators=100, random_state=42)
     else:
-        raise ValueError(f"Desteklenmeyen model: {model_name}")
+        raise ValueError(f"Unsupported model: {model_name}")
     
-    # Pipeline'ı oluştur
+    # Create pipeline
     pipeline = Pipeline([
         ('preprocessor', preprocessor),
         ('classifier', model)
     ])
     
-    # Modeli eğit
+    # Train model
     pipeline.fit(X_train, y_train)
     
     return pipeline
 
 def evaluate_model(pipeline, X_test, y_test):
-    """Model performansını değerlendir"""
-    # Tahmin yap
+    """Evaluate model performance"""
+    # Make predictions
     y_pred = pipeline.predict(X_test)
     y_pred_proba = pipeline.predict_proba(X_test)[:, 1]
     
-    # Performans metrikleri
+    # Performance metrics
     metrics = {
-        'Doğruluk': accuracy_score(y_test, y_pred),
-        'Kesinlik': precision_score(y_test, y_pred),
-        'Duyarlılık': recall_score(y_test, y_pred),
-        'F1 Skoru': f1_score(y_test, y_pred)
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'Precision': precision_score(y_test, y_pred),
+        'Recall': recall_score(y_test, y_pred),
+        'F1 Score': f1_score(y_test, y_pred)
     }
     
-    # Karmaşıklık matrisi
+    # Confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     
-    # ROC eğrisi için veriler
+    # ROC curve data
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
     roc_auc = auc(fpr, tpr)
     
     return metrics, cm, fpr, tpr, roc_auc
 
 def plot_failure_distribution(df):
-    """Arıza dağılımı pasta grafiği"""
+    """Failure distribution pie chart"""
     failure_counts = df['Target'].value_counts().reset_index()
-    failure_counts.columns = ['Durum', 'Sayı']
-    failure_counts['Durum'] = failure_counts['Durum'].map({0: 'Normal', 1: 'Arıza'})
+    failure_counts.columns = ['Status', 'Count']
+    failure_counts['Status'] = failure_counts['Status'].map({0: 'Normal', 1: 'Failure'})
     
     fig = px.pie(
         failure_counts, 
-        values='Sayı', 
-        names='Durum',
-        title='Makine Durumu Dağılımı',
-        color='Durum',
-        color_discrete_map={'Normal': '#2ECC71', 'Arıza': '#E74C3C'},
+        values='Count', 
+        names='Status',
+        title='Machine Status Distribution',
+        color='Status',
+        color_discrete_map={'Normal': '#2ECC71', 'Failure': '#E74C3C'},
         hole=0.4
     )
     
@@ -326,22 +325,22 @@ def plot_failure_distribution(df):
     return fig
 
 def plot_failure_types(df):
-    """Arıza türleri dağılımı"""
-    # Arıza türleri dağılımı
+    """Failure types distribution"""
+    # Failure types distribution
     failure_types = df[df['Target'] == 1]['Failure Type'].value_counts().reset_index()
-    failure_types.columns = ['Arıza Türü', 'Sayı']
+    failure_types.columns = ['Failure Type', 'Count']
     
-    # Renk skalasını tanımlayalım
+    # Define color scale
     colors = px.colors.qualitative.Plotly
     
-    # Bar grafiği
+    # Bar chart
     fig = px.bar(
         failure_types, 
-        x='Arıza Türü', 
-        y='Sayı',
-        color='Arıza Türü',
-        text='Sayı',
-        title='Arıza Türleri Dağılımı',
+        x='Failure Type', 
+        y='Count',
+        color='Failure Type',
+        text='Count',
+        title='Failure Types Distribution',
         color_discrete_sequence=colors
     )
     
@@ -353,8 +352,8 @@ def plot_failure_types(df):
     
     fig.update_layout(
         title_font_size=20,
-        xaxis_title='Arıza Türü',
-        yaxis_title='Sayı',
+        xaxis_title='Failure Type',
+        yaxis_title='Count',
         xaxis_title_font_size=16,
         yaxis_title_font_size=16,
         height=600,
@@ -365,28 +364,28 @@ def plot_failure_types(df):
     return fig
 
 def plot_failure_by_type(df):
-    """Ürün tiplerine göre arıza oranları"""
+    """Failure rates by product type"""
     type_failure = df.groupby('Type')['Target'].mean().reset_index()
-    type_failure.columns = ['Ürün Tipi', 'Arıza Oranı']
-    type_failure['Arıza Oranı'] = type_failure['Arıza Oranı'] * 100
+    type_failure.columns = ['Product Type', 'Failure Rate']
+    type_failure['Failure Rate'] = type_failure['Failure Rate'] * 100
     
-    # Ürün tipi açıklamaları
+    # Product type descriptions
     type_names = {
-        'L': 'Düşük',
-        'M': 'Orta',
-        'H': 'Yüksek'
+        'L': 'Low',
+        'M': 'Medium',
+        'H': 'High'
     }
     
-    type_failure['Tip Açıklaması'] = type_failure['Ürün Tipi'].map(type_names)
+    type_failure['Type Description'] = type_failure['Product Type'].map(type_names)
     
     fig = px.bar(
         type_failure, 
-        x='Ürün Tipi', 
-        y='Arıza Oranı',
-        color='Ürün Tipi',
-        text='Arıza Oranı',
-        hover_data=['Tip Açıklaması'],
-        title='Ürün Tiplerine Göre Arıza Oranları (%)'
+        x='Product Type', 
+        y='Failure Rate',
+        color='Product Type',
+        text='Failure Rate',
+        hover_data=['Type Description'],
+        title='Failure Rates by Product Type (%)'
     )
     
     fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
@@ -394,27 +393,27 @@ def plot_failure_by_type(df):
     return fig
 
 def plot_correlation_heatmap(df):
-    """Korelasyon matrisi ısı haritası"""
-    # Sayısal değişkenleri seç
+    """Correlation matrix heatmap"""
+    # Select numerical variables
     numeric_cols = ['Air temperature [K]', 'Process temperature [K]', 
                   'Rotational speed [rpm]', 'Torque [Nm]', 
                   'Tool wear [min]', 'Target']
     
-    # Korelasyon matrisi hesapla
+    # Calculate correlation matrix
     corr = df[numeric_cols].corr().round(2)
     
-    # Isı haritası görselleştirmesi
+    # Heatmap visualization
     fig = px.imshow(
         corr,
         text_auto=True,
         color_continuous_scale='Blues',
-        title='Değişkenler Arası Korelasyon Matrisi'
+        title='Correlation Matrix Between Variables'
     )
     
     return fig
 
 def plot_3d_sensor_space(df):
-    """3D sensör uzayında arıza dağılımı"""
+    """3D sensor space failure distribution"""
     fig = px.scatter_3d(
         df,
         x='Air temperature [K]',
@@ -425,17 +424,17 @@ def plot_3d_sensor_space(df):
         opacity=0.7,
         color_discrete_map={0: '#2ECC71', 1: '#E74C3C'},
         symbol='Type',
-        title='3D Sensör Uzayında Arıza Dağılımı',
+        title='Failure Distribution in 3D Sensor Space',
         labels={
-            'Target': 'Arıza Durumu',
-            'Type': 'Ürün Tipi'
+            'Target': 'Failure Status',
+            'Type': 'Product Type'
         }
     )
     
     return fig
 
 def plot_confusion_matrix(cm):
-    """Karmaşıklık matrisi görselleştirmesi"""
+    """Confusion matrix visualization"""
     fig, ax = plt.subplots(figsize=(6, 5))
     sns.heatmap(
         cm, 
@@ -445,38 +444,38 @@ def plot_confusion_matrix(cm):
         ax=ax,
         cbar=True
     )
-    ax.set_xlabel('Tahmin')
-    ax.set_ylabel('Gerçek')
-    ax.set_title('Karmaşıklık Matrisi')
-    ax.set_xticklabels(['Normal', 'Arıza'])
-    ax.set_yticklabels(['Normal', 'Arıza'])
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Actual')
+    ax.set_title('Confusion Matrix')
+    ax.set_xticklabels(['Normal', 'Failure'])
+    ax.set_yticklabels(['Normal', 'Failure'])
     
     return fig
 
 def plot_roc_curve(fpr, tpr, roc_auc):
-    """ROC eğrisi görselleştirmesi"""
+    """ROC curve visualization"""
     fig, ax = plt.subplots(figsize=(6, 5))
-    ax.plot(fpr, tpr, color='blue', lw=2, label=f'ROC eğrisi (AUC = {roc_auc:.3f})')
+    ax.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
     ax.plot([0, 1], [0, 1], color='gray', lw=1, linestyle='--')
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('Yanlış Pozitif Oranı')
-    ax.set_ylabel('Doğru Pozitif Oranı')
-    ax.set_title('ROC Eğrisi')
+    ax.set_xlabel('False Positive Rate')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('ROC Curve')
     ax.legend(loc="lower right")
     
     return fig
 
 def plot_sensor_data_by_failure(df, sensor_name):
-    """Sensör verilerinin arıza durumuna göre dağılımı"""
+    """Sensor data distribution by failure status"""
     fig = px.histogram(
         df, 
         x=sensor_name, 
         color='Target',
         barmode='overlay',
         color_discrete_map={0: '#2ECC71', 1: '#E74C3C'},
-        labels={'Target': 'Arıza Durumu'},
-        title=f'{sensor_name} Dağılımı'
+        labels={'Target': 'Failure Status'},
+        title=f'{sensor_name} Distribution'
     )
     
     fig.update_layout(bargap=0.1)
@@ -484,53 +483,53 @@ def plot_sensor_data_by_failure(df, sensor_name):
     return fig
 
 def main():
-    """Ana Streamlit uygulaması"""
-    # Başlık ve giriş
-    st.markdown('<h1 class="main-header">🔧 Prediktif Bakım Analiz Panosu</h1>', unsafe_allow_html=True)
+    """Main Streamlit application"""
+    # Title and introduction
+    st.markdown('<h1 class="main-header">🔧 Predictive Maintenance Dashboard</h1>', unsafe_allow_html=True)
     
     st.markdown('<div class="info-box">', unsafe_allow_html=True)
     st.markdown("""
-    Bu analiz panosu, endüstriyel makine bakımı için makine öğrenmesi modellerinin sonuçlarını görselleştirmektedir.
-    Sensör verileri ve ürün özellikleri kullanılarak arıza tahminleri yapılmakta ve performans analizleri sunulmaktadır.
+    This dashboard visualizes the results of machine learning models for industrial machine maintenance.
+    Failure predictions are made using sensor data and product features, and performance analyses are presented.
     """)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Veri yükleme
+    # Load data
     df = load_data()
     
     if df is not None:
-        # Sidebar - Filtreleme seçenekleri
-        st.sidebar.markdown("## 🔍 Veri Filtreleme")
+        # Sidebar - Filtering options
+        st.sidebar.markdown("## 🔍 Data Filtering")
         
-        # Ürün tipi filtreleme
+        # Product type filtering
         product_types = sorted(df['Type'].unique())
         selected_types = st.sidebar.multiselect(
-            "Ürün Tipi Seçin:",
+            "Select Product Type:",
             options=product_types,
             default=product_types
         )
         
-        # Alet aşınması filtreleme
+        # Tool wear filtering
         min_tool_wear = int(df['Tool wear [min]'].min())
         max_tool_wear = int(df['Tool wear [min]'].max())
         tool_wear_range = st.sidebar.slider(
-            "Alet Aşınması Aralığı (dk):",
+            "Tool Wear Range (min):",
             min_value=min_tool_wear,
             max_value=max_tool_wear,
             value=(min_tool_wear, max_tool_wear)
         )
         
-        # Sıcaklık aralığı filtreleme
+        # Temperature range filtering
         min_temp = float(df['Air temperature [K]'].min())
         max_temp = float(df['Air temperature [K]'].max())
         temp_range = st.sidebar.slider(
-            "Hava Sıcaklığı Aralığı (K):",
+            "Air Temperature Range (K):",
             min_value=min_temp,
             max_value=max_temp,
             value=(min_temp, max_temp)
         )
         
-        # Filtreleme uygula
+        # Apply filtering
         filtered_df = df[
             (df['Type'].isin(selected_types)) &
             (df['Tool wear [min]'] >= tool_wear_range[0]) &
@@ -539,68 +538,68 @@ def main():
             (df['Air temperature [K]'] <= temp_range[1])
         ]
         
-        # Sidebar - Model seçenekleri
-        st.sidebar.markdown("## 🧠 Model Ayarları")
+        # Sidebar - Model options
+        st.sidebar.markdown("## 🧠 Model Settings")
         model_name = st.sidebar.selectbox(
-            "Model Seçin:",
+            "Select Model:",
             ["Random Forest", "Gradient Boosting"]
         )
         
-        # Sidebar - Tahmin simülasyonu
-        st.sidebar.markdown("## 💭 Arıza Tahmin Simülasyonu")
+        # Sidebar - Prediction simulation
+        st.sidebar.markdown("## 💭 Failure Prediction Simulation")
         
-        # Kullanıcı girişleri için değerler
-        air_temp = st.sidebar.number_input("Hava Sıcaklığı (K)", min_value=float(df['Air temperature [K]'].min()), 
+        # User inputs for values
+        air_temp = st.sidebar.number_input("Air Temperature (K)", min_value=float(df['Air temperature [K]'].min()), 
                                            max_value=float(df['Air temperature [K]'].max()), 
                                            value=float(df['Air temperature [K]'].mean()))
         
-        process_temp = st.sidebar.number_input("Süreç Sıcaklığı (K)", min_value=float(df['Process temperature [K]'].min()), 
+        process_temp = st.sidebar.number_input("Process Temperature (K)", min_value=float(df['Process temperature [K]'].min()), 
                                                max_value=float(df['Process temperature [K]'].max()), 
                                                value=float(df['Process temperature [K]'].mean()))
         
-        rotation = st.sidebar.number_input("Dönüş Hızı (rpm)", min_value=float(df['Rotational speed [rpm]'].min()), 
+        rotation = st.sidebar.number_input("Rotational Speed (rpm)", min_value=float(df['Rotational speed [rpm]'].min()), 
                                            max_value=float(df['Rotational speed [rpm]'].max()), 
                                            value=float(df['Rotational speed [rpm]'].mean()))
         
-        torque = st.sidebar.number_input("Tork (Nm)", min_value=float(df['Torque [Nm]'].min()), 
+        torque = st.sidebar.number_input("Torque (Nm)", min_value=float(df['Torque [Nm]'].min()), 
                                          max_value=float(df['Torque [Nm]'].max()), 
                                          value=float(df['Torque [Nm]'].mean()))
         
-        tool_wear = st.sidebar.number_input("Alet Aşınması (dk)", min_value=float(df['Tool wear [min]'].min()), 
+        tool_wear = st.sidebar.number_input("Tool Wear (min)", min_value=float(df['Tool wear [min]'].min()), 
                                             max_value=float(df['Tool wear [min]'].max()), 
                                             value=float(df['Tool wear [min]'].mean()))
         
-        product_type = st.sidebar.selectbox("Ürün Tipi", options=df['Type'].unique())
+        product_type = st.sidebar.selectbox("Product Type", options=df['Type'].unique())
         
-        # Ana sekmeler
-        tabs = st.tabs(["📊 Veri Analizi", "📈 Model Sonuçları", "🔮 Tahmin Simülasyonu"])
+        # Main tabs
+        tabs = st.tabs(["📊 Data Analysis", "📈 Model Results", "🔮 Prediction Simulation"])
         
         with tabs[0]:
-            st.markdown('<h2 class="sub-header">Veri Analizi</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="sub-header">Data Analysis</h2>', unsafe_allow_html=True)
             
-            # Genel veri özeti
-            st.markdown('<h3 class="tab-subheader">Veri Seti Özeti</h3>', unsafe_allow_html=True)
+            # General data summary
+            st.markdown('<h3 class="tab-subheader">Dataset Summary</h3>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Toplam Kayıt Sayısı", len(filtered_df))
+                st.metric("Total Records", len(filtered_df))
             with col2:
-                st.metric("Arıza Sayısı", filtered_df['Target'].sum())
+                st.metric("Failure Count", filtered_df['Target'].sum())
             with col3:
-                ariza_orani = filtered_df['Target'].mean() * 100
-                st.metric("Arıza Oranı (%)", f"{ariza_orani:.2f}%")
+                failure_rate = filtered_df['Target'].mean() * 100
+                st.metric("Failure Rate (%)", f"{failure_rate:.2f}%")
             
-            # Veri örnekleri
-            st.markdown('<h3 class="tab-subheader">Veri Örnekleri</h3>', unsafe_allow_html=True)
+            # Data samples
+            st.markdown('<h3 class="tab-subheader">Data Samples</h3>', unsafe_allow_html=True)
             st.dataframe(filtered_df.head(10), use_container_width=True)
             
-            # İstatistiksel özet
-            st.markdown('<h3 class="tab-subheader">İstatistiksel Özet</h3>', unsafe_allow_html=True)
+            # Statistical summary
+            st.markdown('<h3 class="tab-subheader">Statistical Summary</h3>', unsafe_allow_html=True)
             st.dataframe(filtered_df.describe().T, use_container_width=True)
             
-            # Görselleştirmeler
-            st.markdown('<h3 class="tab-subheader">Görselleştirmeler</h3>', unsafe_allow_html=True)
+            # Visualizations
+            st.markdown('<h3 class="tab-subheader">Visualizations</h3>', unsafe_allow_html=True)
             
-            # 1. Satır - Arıza dağılımı ve türleri
+            # 1st Row - Failure distribution and types
             col1, col2 = st.columns(2)
             with col1:
                 st.plotly_chart(plot_failure_distribution(filtered_df), use_container_width=True)
@@ -608,25 +607,25 @@ def main():
                 if filtered_df['Target'].sum() > 0:
                     st.plotly_chart(plot_failure_types(filtered_df), use_container_width=True)
                 else:
-                    st.info("Seçilen filtrelerde arıza verisi bulunmamaktadır.")
+                    st.info("No failure data found in the selected filters.")
             
-            # 2. Satır - Ürün tipi ve korelasyon
+            # 2nd Row - Product type and correlation
             col1, col2 = st.columns(2)
             with col1:
                 st.plotly_chart(plot_failure_by_type(filtered_df), use_container_width=True)
             with col2:
                 st.plotly_chart(plot_correlation_heatmap(filtered_df), use_container_width=True)
             
-            # 3. Satır - 3D görselleştirme
+            # 3rd Row - 3D visualization
             st.plotly_chart(plot_3d_sensor_space(filtered_df), use_container_width=True)
             
-            # 4. Satır - Sensör dağılımları
+            # 4th Row - Sensor distributions
             sensor_tabs = st.tabs([
-                "Hava Sıcaklığı", 
-                "Süreç Sıcaklığı", 
-                "Dönüş Hızı", 
-                "Tork", 
-                "Alet Aşınması"
+                "Air Temperature", 
+                "Process Temperature", 
+                "Rotational Speed", 
+                "Torque", 
+                "Tool Wear"
             ])
             
             with sensor_tabs[0]:
@@ -645,39 +644,39 @@ def main():
                 st.plotly_chart(plot_sensor_data_by_failure(filtered_df, 'Tool wear [min]'), use_container_width=True)
         
         with tabs[1]:
-            st.markdown('<h2 class="sub-header">Model Sonuçları</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="sub-header">Model Results</h2>', unsafe_allow_html=True)
             
-            # Model eğitim ve değerlendirme
-            if st.button("Modeli Eğit ve Değerlendir"):
-                with st.spinner("Model eğitiliyor..."):
-                    # Veriyi hazırla
+            # Model training and evaluation
+            if st.button("Train and Evaluate Model"):
+                with st.spinner("Training model..."):
+                    # Prepare data
                     X, y, X_train, X_test, y_train, y_test, preprocessor, numerical_features, categorical_features = prepare_data(df)
                     
-                    # Modeli eğit
+                    # Train model
                     pipeline = train_model(X_train, y_train, preprocessor, model_name)
                     
-                    # Modeli değerlendir
+                    # Evaluate model
                     metrics, cm, fpr, tpr, roc_auc = evaluate_model(pipeline, X_test, y_test)
                     
-                    # Performans metrikleri
-                    st.markdown('<h3 class="tab-subheader">Model Performans Metrikleri</h3>', unsafe_allow_html=True)
+                    # Performance metrics
+                    st.markdown('<h3 class="tab-subheader">Model Performance Metrics</h3>', unsafe_allow_html=True)
                     metric_cols = st.columns(4)
                     for i, (metric, value) in enumerate(metrics.items()):
                         with metric_cols[i]:
                             st.metric(metric, f"{value:.4f}")
                     
-                    # Karmaşıklık matrisi ve ROC eğrisi
-                    st.markdown('<h3 class="tab-subheader">Model Değerlendirme Grafikleri</h3>', unsafe_allow_html=True)
+                    # Confusion matrix and ROC curve
+                    st.markdown('<h3 class="tab-subheader">Model Evaluation Graphs</h3>', unsafe_allow_html=True)
                     col1, col2 = st.columns(2)
                     with col1:
                         st.pyplot(plot_confusion_matrix(cm))
                     with col2:
                         st.pyplot(plot_roc_curve(fpr, tpr, roc_auc))
                     
-                    # Özellik önemleri
-                    st.markdown('<h3 class="tab-subheader">Özellik Önemi</h3>', unsafe_allow_html=True)
+                    # Feature importance
+                    st.markdown('<h3 class="tab-subheader">Feature Importance</h3>', unsafe_allow_html=True)
                     if hasattr(pipeline['classifier'], 'feature_importances_'):
-                        # Özellik isimlerini al
+                        # Get feature names
                         feature_names = numerical_features + ['Type_M', 'Type_H']
                         importances = pipeline['classifier'].feature_importances_
                         indices = np.argsort(importances)[::-1]
@@ -685,33 +684,33 @@ def main():
                         # Bar plot
                         fig, ax = plt.subplots(figsize=(10, 6))
                         sns.barplot(x=importances[indices], y=[feature_names[i] for i in indices], ax=ax)
-                        ax.set_title('Özellik Önem Dereceleri')
-                        ax.set_xlabel('Önem Derecesi')
+                        ax.set_title('Feature Importance')
+                        ax.set_xlabel('Importance')
                         st.pyplot(fig)
                     else:
-                        st.info("Seçilen model için özellik önemi hesaplanamıyor.")
+                        st.info("Feature importance cannot be calculated for the selected model.")
             else:
-                st.info("Modeli eğitmek ve değerlendirmek için 'Modeli Eğit ve Değerlendir' butonuna tıklayın.")
+                st.info("Click 'Train and Evaluate Model' to train and evaluate the model.")
         
         with tabs[2]:
-            st.markdown('<h2 class="sub-header">Tahmin Simülasyonu</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="sub-header">Prediction Simulation</h2>', unsafe_allow_html=True)
             
             st.markdown('<div class="info-box">', unsafe_allow_html=True)
             st.markdown("""
-            Bu bölümde, sol taraftaki giriş değerlerini kullanarak yeni bir makinenin arıza olasılığını tahmin edebilirsiniz.
-            Sensör değerlerini ve ürün tipini ayarlayın, ardından tahmin butonuna tıklayın.
+            In this section, you can predict the failure probability of a new machine using the input values on the left.
+            Adjust the sensor values and product type, then click the prediction button.
             """)
             st.markdown('</div>', unsafe_allow_html=True)
             
-            if st.sidebar.button("Arıza Tahmini Yap"):
-                with st.spinner("Tahmin yapılıyor..."):
-                    # Veriyi hazırla
+            if st.sidebar.button("Make Failure Prediction"):
+                with st.spinner("Making prediction..."):
+                    # Prepare data
                     X, y, X_train, X_test, y_train, y_test, preprocessor, numerical_features, categorical_features = prepare_data(df)
                     
-                    # Modeli eğit
+                    # Train model
                     pipeline = train_model(X_train, y_train, preprocessor, model_name)
                     
-                    # Tahmin için yeni veri
+                    # New data for prediction
                     new_data = pd.DataFrame({
                         'Air temperature [K]': [air_temp],
                         'Process temperature [K]': [process_temp],
@@ -721,45 +720,45 @@ def main():
                         'Type': [product_type]
                     })
                     
-                    # Tahmin yap
+                    # Make prediction
                     prediction_proba = pipeline.predict_proba(new_data)[0][1]
                     prediction = 1 if prediction_proba > 0.5 else 0
                     
-                    # Sonuçları göster
-                    st.markdown('<h3 class="tab-subheader">Tahmin Sonucu</h3>', unsafe_allow_html=True)
+                    # Show results
+                    st.markdown('<h3 class="tab-subheader">Prediction Result</h3>', unsafe_allow_html=True)
                     
-                    # Tahmin göstergeleri
+                    # Prediction indicators
                     col1, col2 = st.columns(2)
                     with col1:
                         if prediction == 1:
-                            st.error("⚠️ Arıza Riski Tespit Edildi!")
+                            st.error("⚠️ Failure Risk Detected!")
                         else:
-                            st.success("✅ Normal Çalışma Bekleniyor")
+                            st.success("✅ Normal Operation Expected")
                     
                     with col2:
-                        # İlerleme çubuğu ile arıza olasılığı
-                        st.metric("Arıza Olasılığı", f"{prediction_proba:.2%}")
+                        # Progress bar with failure probability
+                        st.metric("Failure Probability", f"{prediction_proba:.2%}")
                         st.progress(float(prediction_proba))
                     
-                    # Sensör değerleri özeti
-                    st.markdown('<h3 class="tab-subheader">Girilen Parametreler</h3>', unsafe_allow_html=True)
+                    # Sensor values summary
+                    st.markdown('<h3 class="tab-subheader">Input Parameters</h3>', unsafe_allow_html=True)
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("Hava Sıcaklığı", f"{air_temp:.2f} K")
-                        st.metric("Süreç Sıcaklığı", f"{process_temp:.2f} K")
+                        st.metric("Air Temperature", f"{air_temp:.2f} K")
+                        st.metric("Process Temperature", f"{process_temp:.2f} K")
                     with col2:
-                        st.metric("Dönüş Hızı", f"{rotation:.2f} rpm")
-                        st.metric("Tork", f"{torque:.2f} Nm")
+                        st.metric("Rotational Speed", f"{rotation:.2f} rpm")
+                        st.metric("Torque", f"{torque:.2f} Nm")
                     with col3:
-                        st.metric("Alet Aşınması", f"{tool_wear:.2f} dk")
-                        st.metric("Ürün Tipi", product_type)
+                        st.metric("Tool Wear", f"{tool_wear:.2f} min")
+                        st.metric("Product Type", product_type)
                     
-                    # Arıza olasılığı göstergesi (gauge)
+                    # Failure probability gauge
                     fig = go.Figure(go.Indicator(
                         mode = "gauge+number",
                         value = prediction_proba * 100,
                         domain = {'x': [0, 1], 'y': [0, 1]},
-                        title = {'text': "Arıza Olasılığı (%)", 'font': {'size': 24}},
+                        title = {'text': "Failure Probability (%)", 'font': {'size': 24}},
                         gauge = {
                             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
                             'bar': {'color': "darkblue"},
@@ -782,48 +781,48 @@ def main():
                     
                     st.plotly_chart(fig, use_container_width=True)
                     
-                    # Tavsiyeler
-                    st.markdown('<h3 class="tab-subheader">Bakım Tavsiyeleri</h3>', unsafe_allow_html=True)
+                    # Recommendations
+                    st.markdown('<h3 class="tab-subheader">Maintenance Recommendations</h3>', unsafe_allow_html=True)
                     
-                    # Arıza durumuna göre öneriler
+                    # Recommendations based on failure status
                     if prediction_proba > 0.75:
                         st.error("""
-                        🚨 **ACİL BAKIM GEREKLİ!**
-                        - Makineyi en kısa sürede durdurarak detaylı inceleme yapın
-                        - Alet aşınmasını kontrol edin ve gerekirse değiştirin
-                        - Sıcaklık değerlerini izleyin ve soğutma sistemini kontrol edin
+                        🚨 **URGENT MAINTENANCE REQUIRED!**
+                        - Stop the machine as soon as possible for detailed inspection
+                        - Check tool wear and replace if necessary
+                        - Monitor temperature values and check cooling system
                         """)
                     elif prediction_proba > 0.5:
                         st.warning("""
-                        ⚠️ **PLANSIZ DURUŞ RİSKİ!**
-                        - Yakın zamanda (1 hafta içinde) bakım planlanmalı
-                        - Alet durumunu yakından izleyin
-                        - Dönüş hızı ve tork değerlerini düzenli kontrol edin
+                        ⚠️ **RISK OF UNPLANNED DOWNTIME!**
+                        - Schedule maintenance soon (within 1 week)
+                        - Monitor tool condition closely
+                        - Regularly check rotational speed and torque values
                         """)
                     elif prediction_proba > 0.25:
                         st.info("""
-                        ℹ️ **DÜŞÜK RİSK**
-                        - Normal bakım programınıza devam edin
-                        - Parametreleri düzenli izleyin
-                        - Bir sonraki planlı bakımda alet değişimi değerlendirilebilir
+                        ℹ️ **LOW RISK**
+                        - Continue with normal maintenance schedule
+                        - Monitor parameters regularly
+                        - Consider tool replacement at next planned maintenance
                         """)
                     else:
                         st.success("""
-                        ✅ **NORMAL ÇALIŞMA**
-                        - Normal çalışma koşulları sürdürülebilir
-                        - Rutin bakım programını takip edin
-                        - Sensor verilerini düzenli kaydedin
+                        ✅ **NORMAL OPERATION**
+                        - Normal operating conditions can be maintained
+                        - Follow routine maintenance schedule
+                        - Record sensor data regularly
                         """)
             else:
-                st.info("Tahmin yapmak için soldaki panelden değerleri ayarlayın ve 'Arıza Tahmini Yap' butonuna tıklayın.")
+                st.info("To make a prediction, adjust the values on the left panel and click 'Make Failure Prediction'.")
         
         # Footer
         st.markdown('<div class="footer">', unsafe_allow_html=True)
-        st.markdown("Makine Öğrenmesi ile Endüstriyel Bakım Tahmin Projesi © 2024")
+        st.markdown("Industrial Maintenance Prediction Project Using Machine Learning © 2024")
         st.markdown('</div>', unsafe_allow_html=True)
     
     else:
-        st.error("Veri yüklenemedi! Lütfen dosya yolunu kontrol edin.")
+        st.error("Data could not be loaded! Please check the file path.")
 
 if __name__ == "__main__":
     main()
